@@ -591,14 +591,14 @@ section{ padding: clamp(4.5rem, 9vw, 8rem) 0; }
   box-shadow: 0 24px 50px -30px rgba(14,13,18,.28);
 }
 .partner-avatar{
-  width: 4.4rem; height: 4.4rem;
+  width: 6.4rem; height: 6.4rem;
   border-radius: 50%;
   background: var(--navy);
   color: var(--white);
   display: flex; align-items: center; justify-content: center;
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 1.2rem;
+  font-size: 1.6rem;
   letter-spacing: .04em;
   overflow: hidden;
 }
