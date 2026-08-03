@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cadastro de Cliente — Bessoni &amp; Fortes</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="../assets/img/bf-mark-navy.png">
+<link rel="stylesheet" href="../css/style.css?v=13">
+</head>
+<body>
+
+<div class="portal-shell">
+  <aside class="portal-sidebar">
+    <a class="portal-brand" href="../index.html" aria-label="Bessoni & Fortes">
+      <img src="../assets/img/logo-wordmark-white.png" alt="Bessoni & Fortes">
+    </a>
+
+    <nav class="portal-nav">
+      <a class="portal-nav-link" href="admin.html">Painel</a>
+      <a class="portal-nav-link" href="clientes.html">Cliente</a>
+      <a class="portal-nav-link is-active" href="cadastro-de-cliente.html">Cadastro</a>
+    </nav>
+
+    <div class="portal-sidebar-foot">
+      <div class="portal-who">
+        <span data-user-nome>—</span>
+        <span class="tag">Escritório</span>
+      </div>
+      <button class="portal-logout" type="button" data-logout>Sair</button>
+    </div>
+  </aside>
+
+  <div class="portal-content">
+    <main class="portal-main">
+
+      <div class="portal-head">
+        <h1>Cadastro de cliente</h1>
+        <p>Cadastro principal de clientes e partidos. Processos, obrigações e acessos de cada cliente ficam dentro da "pasta" dele — depois de salvar, veja a lista em <a href="clientes.html">Cliente</a> no menu.</p>
+      </div>
+
+      <!-- CLIENTES -->
+      <section class="portal-section">
+        <h2>1 · Novo cliente</h2>
+        <p class="portal-section-desc">Um cliente pode ser pessoa física, empresa, órgão partidário ou candidato — escolha no máximo uma das opções abaixo.</p>
+
+        <form class="form-grid" id="form-cliente-cadastro" data-form="cliente-cadastro" autocomplete="off">
+          <div class="field">
+            <label for="cad-nome">Nome do cliente</label>
+            <input type="text" id="cad-nome" required placeholder="Pessoa física, empresa, órgão partidário..." autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="cad-documento">CPF/CNPJ</label>
+            <input type="text" id="cad-documento" placeholder="Opcional">
+          </div>
+
+          <div class="field" style="grid-column: 1 / -1; display:flex; gap: 2rem; flex-wrap: wrap;">
+            <label class="checkbox">
+              <input type="radio" name="cad-tipo" value="nenhum" checked>
+              Nenhum (pessoa física / empresa)
+            </label>
+            <label class="checkbox">
+              <input type="radio" name="cad-tipo" value="orgao">
+              É um órgão partidário
+            </label>
+            <label class="checkbox">
+              <input type="radio" name="cad-tipo" value="candidato">
+              É candidato
+            </label>
+          </div>
+
+          <div class="field" data-campo-partido hidden>
+            <label for="cad-partido">Partido</label>
+            <select id="cad-partido"><option value="">— selecione —</option></select>
+          </div>
+          <div class="field" data-campo-partido hidden style="align-self: end;">
+            <button type="button" class="portal-inline-link" data-toggle-novo-partido>+ Cadastrar novo partido</button>
+          </div>
+
+          <div class="form-grid" data-novo-partido-box hidden style="grid-column: 1 / -1; padding: 1rem; border: 1px dashed var(--mist);">
+            <div class="field">
+              <label for="novo-partido-sigla">Sigla do novo partido</label>
+              <input type="text" id="novo-partido-sigla" placeholder="Ex: XX">
+            </div>
+            <div class="field">
+              <label for="novo-partido-nome">Nome do novo partido</label>
+              <input type="text" id="novo-partido-nome" placeholder="Nome completo">
+            </div>
+            <div class="field" style="align-self: end;">
+              <button type="button" class="btn btn-ghost-light" data-salvar-novo-partido>Salvar partido</button>
+              <span class="portal-inline-msg" data-msg="novo-partido"></span>
+            </div>
+          </div>
+
+          <div class="field" data-campo-orgao hidden>
+            <label for="cad-nivel">Nível</label>
+            <select id="cad-nivel">
+              <option value="">— não se aplica —</option>
+              <option value="nacional">Nacional</option>
+              <option value="estadual">Estadual</option>
+              <option value="municipal">Municipal</option>
+            </select>
+          </div>
+          <div class="field" data-campo-orgao hidden>
+            <label for="cad-uf">UF</label>
+            <input type="text" id="cad-uf" maxlength="2" placeholder="Ex: BA">
+          </div>
+          <div class="field" data-campo-orgao hidden>
+            <label for="cad-municipio">Município</label>
+            <input type="text" id="cad-municipio" placeholder="Se for municipal">
+          </div>
+          <div class="field" data-campo-orgao hidden>
+            <label for="cad-pai">Cliente superior</label>
+            <select id="cad-pai"><option value="">— nenhum (é o órgão nacional) —</option></select>
+          </div>
+
+          <div class="field" data-campo-candidato hidden>
+            <label for="cad-cargo">Cargo disputado</label>
+            <input type="text" id="cad-cargo" placeholder="Ex: Prefeito, Deputado Federal...">
+          </div>
+          <div class="field" data-campo-candidato hidden>
+            <label for="cad-ano-eleicao">Ano da eleição</label>
+            <input type="number" id="cad-ano-eleicao" min="2000" max="2100" placeholder="Ex: 2026">
+          </div>
+        </form>
+        <div class="portal-form-actions">
+          <button class="btn btn-ghost-light" type="submit" form="form-cliente-cadastro">Salvar cliente</button>
+          <span class="portal-inline-msg" data-msg="cliente-cadastro"></span>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase-config.js"></script>
+<script src="../js/auth.js"></script>
+<script src="cadastro-de-cliente.js"></script>
+</body>
+</html>

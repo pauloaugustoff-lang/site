@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pasta do cliente — Bessoni &amp; Fortes</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="../assets/img/bf-mark-navy.png">
+<link rel="stylesheet" href="../css/style.css?v=13">
+</head>
+<body>
+
+<div class="portal-shell">
+  <aside class="portal-sidebar">
+    <a class="portal-brand" href="../index.html" aria-label="Bessoni & Fortes">
+      <img src="../assets/img/logo-wordmark-white.png" alt="Bessoni & Fortes">
+    </a>
+
+    <nav class="portal-nav">
+      <a class="portal-nav-link" href="admin.html">Painel</a>
+      <a class="portal-nav-link is-active" href="clientes.html">Cliente</a>
+      <a class="portal-nav-link" href="cadastro-de-cliente.html">Cadastro</a>
+    </nav>
+
+    <div class="portal-sidebar-foot">
+      <div class="portal-who">
+        <span data-user-nome>—</span>
+        <span class="tag">Escritório</span>
+      </div>
+      <button class="portal-logout" type="button" data-logout>Sair</button>
+    </div>
+  </aside>
+
+  <div class="portal-content">
+    <main class="portal-main">
+
+      <div class="portal-head">
+        <a class="portal-inline-link" href="clientes.html">← Voltar aos clientes</a>
+        <h1 style="margin-top: .8rem;" data-cliente-nome>Carregando…</h1>
+        <p data-cliente-info></p>
+      </div>
+
+      <!-- PROCESSOS -->
+      <section class="portal-section">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; flex-wrap:wrap;">
+          <div>
+            <h2>Processos e casos</h2>
+            <p class="portal-section-desc">Qualquer tipo de caso deste cliente: prestação de contas, AIJE, representação, registro de candidatura, DRAP etc.</p>
+          </div>
+          <button class="btn btn-ghost-light" type="button" data-toggle-novo-processo>+ Novo processo</button>
+        </div>
+
+        <div data-novo-processo-box hidden style="margin-top: 1.4rem; padding: 1.4rem; border: 1px dashed var(--mist);">
+          <form class="form-grid" id="form-processo" data-form="processo">
+            <div class="field">
+              <label for="proc-categoria">Categoria</label>
+              <select id="proc-categoria" required>
+                <option value="prestacao_contas">Prestação de contas</option>
+                <option value="aije">AIJE</option>
+                <option value="representacao">Representação</option>
+                <option value="registro_candidatura">Registro de candidatura</option>
+                <option value="drap">DRAP</option>
+                <option value="outro">Outro</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="proc-subcategoria">Subcategoria</label>
+              <input type="text" id="proc-subcategoria" placeholder="Ex: Anual / Eleitoral">
+            </div>
+            <div class="field">
+              <label for="proc-titulo">Título</label>
+              <input type="text" id="proc-titulo" placeholder="Ex: Prestação de contas 2020">
+            </div>
+            <div class="field">
+              <label for="proc-ano">Ano</label>
+              <input type="number" id="proc-ano" placeholder="Ex: 2020" min="2000" max="2100">
+            </div>
+            <div class="field">
+              <label for="proc-numero">Nº do processo</label>
+              <input type="text" id="proc-numero" placeholder="Opcional">
+            </div>
+            <div class="field">
+              <label for="proc-orgaojulgador">Órgão julgador</label>
+              <input type="text" id="proc-orgaojulgador" placeholder="Ex: TSE ou TRE-BA">
+            </div>
+            <div class="field">
+              <label for="proc-foro">Foro</label>
+              <input type="text" id="proc-foro" placeholder="Opcional">
+            </div>
+            <div class="field">
+              <label for="proc-status">Status</label>
+              <select id="proc-status">
+                <option value="em_andamento">Em andamento</option>
+                <option value="aguardando_diligencia">Aguardando diligência</option>
+                <option value="concluido">Concluído</option>
+              </select>
+            </div>
+            <div class="field" data-resultado-select-wrap>
+              <label for="proc-resultado-select">Resultado</label>
+              <select id="proc-resultado-select">
+                <option value="">— sem resultado ainda —</option>
+                <option value="aprovadas">Aprovadas</option>
+                <option value="aprovadas_com_ressalvas">Aprovadas com ressalvas</option>
+                <option value="desaprovadas">Desaprovadas</option>
+                <option value="nao_prestadas">Não prestadas</option>
+              </select>
+            </div>
+            <div class="field" data-resultado-texto-wrap hidden>
+              <label for="proc-resultado-texto">Resultado</label>
+              <input type="text" id="proc-resultado-texto" placeholder="Ex: Deferido / Indeferido / Procedente...">
+            </div>
+            <div class="field">
+              <label for="proc-data-decisao">Data da decisão</label>
+              <input type="date" id="proc-data-decisao">
+            </div>
+            <div class="field">
+              <label for="proc-data-protocolo">Data de protocolo</label>
+              <input type="date" id="proc-data-protocolo">
+            </div>
+          </form>
+          <div class="portal-form-actions">
+            <button class="btn btn-ghost-light" type="submit" form="form-processo">Salvar processo</button>
+            <span class="portal-inline-msg" data-msg="processo"></span>
+          </div>
+        </div>
+
+        <div class="portal-toolbar" style="margin-top: 1.6rem;">
+          <div class="field" style="margin-top: 0;">
+            <label for="busca-processo">Buscar</label>
+            <input type="text" id="busca-processo" placeholder="Categoria, título, nº do processo...">
+          </div>
+          <div class="field" style="margin-top: 0;">
+            <label for="filtro-processo-status">Status</label>
+            <select id="filtro-processo-status">
+              <option value="">Todos</option>
+              <option value="em_andamento">Em andamento</option>
+              <option value="aguardando_diligencia">Aguardando diligência</option>
+              <option value="concluido">Concluído</option>
+            </select>
+          </div>
+        </div>
+
+        <div data-list="processos"><span class="empty-note">Carregando…</span></div>
+      </section>
+
+      <!-- ACESSO DE CLIENTE -->
+      <section class="portal-section">
+        <h2>Acessos (login)</h2>
+        <p class="portal-section-desc">Este cliente pode ter mais de um login — cada um com seu próprio escopo de acesso. A senha gerada não fica salva em lugar nenhum depois desta tela, copie e repasse com segurança.</p>
+
+        <form class="form-grid" id="form-acesso" data-form="acesso">
+          <div class="field">
+            <label for="acesso-nome">Nome do responsável</label>
+            <input type="text" id="acesso-nome" required placeholder="Quem vai acessar">
+          </div>
+          <div class="field">
+            <label for="acesso-email">E-mail</label>
+            <input type="email" id="acesso-email" required placeholder="email@exemplo.com.br">
+          </div>
+          <div class="field">
+            <label for="acesso-escopo">Escopo de acesso</label>
+            <select id="acesso-escopo">
+              <option value="total">Todos os processos</option>
+              <option value="prestacao_contas">Só prestação de contas</option>
+            </select>
+          </div>
+        </form>
+        <div class="portal-form-actions">
+          <button class="btn btn-ghost-light" type="submit" form="form-acesso">Criar acesso</button>
+          <span class="portal-inline-msg" data-msg="acesso"></span>
+        </div>
+
+        <div class="credential-box" data-credential-box>
+          <p>Acesso criado. Copie a senha agora — ela não aparece de novo.</p>
+          <div class="credential-row">
+            <span class="k">E-mail</span>
+            <span class="v" data-cred-email></span>
+          </div>
+          <div class="credential-row">
+            <span class="k">Senha</span>
+            <span class="v" data-cred-senha></span>
+            <button type="button" data-copy-senha>Copiar senha</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase-config.js"></script>
+<script src="../js/auth.js"></script>
+<script src="cliente.js"></script>
+</body>
+</html>

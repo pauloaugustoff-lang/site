@@ -64,17 +64,6 @@
     });
   });
 
-  var loginForm = document.querySelector("[data-login-form]");
-  if (loginForm) {
-    loginForm.addEventListener("submit", function (e) {
-      e.preventDefault();
-      var feedback = loginForm.querySelector("[data-form-feedback]");
-      if (feedback) feedback.classList.add("is-visible");
-      var submitBtn = loginForm.querySelector('button[type="submit"]');
-      if (submitBtn) submitBtn.disabled = true;
-    });
-  }
-
   document.querySelectorAll("[data-year]").forEach(function (el) {
     el.textContent = String(new Date().getFullYear());
   });

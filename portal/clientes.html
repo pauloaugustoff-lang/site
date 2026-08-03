@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clientes — Bessoni &amp; Fortes</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="../assets/img/bf-mark-navy.png">
+<link rel="stylesheet" href="../css/style.css?v=13">
+</head>
+<body>
+
+<div class="portal-shell">
+  <aside class="portal-sidebar">
+    <a class="portal-brand" href="../index.html" aria-label="Bessoni & Fortes">
+      <img src="../assets/img/logo-wordmark-white.png" alt="Bessoni & Fortes">
+    </a>
+
+    <nav class="portal-nav">
+      <a class="portal-nav-link" href="admin.html">Painel</a>
+      <a class="portal-nav-link is-active" href="clientes.html">Cliente</a>
+      <a class="portal-nav-link" href="cadastro-de-cliente.html">Cadastro</a>
+    </nav>
+
+    <div class="portal-sidebar-foot">
+      <div class="portal-who">
+        <span data-user-nome>—</span>
+        <span class="tag">Escritório</span>
+      </div>
+      <button class="portal-logout" type="button" data-logout>Sair</button>
+    </div>
+  </aside>
+
+  <div class="portal-content">
+    <main class="portal-main">
+
+      <div class="portal-head">
+        <h1>Clientes</h1>
+        <p>Todos os clientes cadastrados. Clique em um para abrir a pasta dele (processos, obrigações e acessos). Precisa cadastrar um novo? Vá em <a href="cadastro-de-cliente.html">Cadastro</a>.</p>
+      </div>
+
+      <section class="portal-section">
+        <div class="portal-toolbar">
+          <div class="field">
+            <label for="filtro-busca">Buscar</label>
+            <input type="text" id="filtro-busca" placeholder="Nome do cliente...">
+          </div>
+          <div class="field">
+            <label for="filtro-tipo">Tipo</label>
+            <select id="filtro-tipo">
+              <option value="">Todos</option>
+              <option value="orgao">Órgão partidário</option>
+              <option value="candidato">Candidato</option>
+              <option value="nenhum">Sem categoria</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="portal-table">
+            <thead><tr><th>Cliente</th><th>Tipo</th><th>Partido</th><th></th></tr></thead>
+            <tbody data-list="clientes"><tr class="empty-row"><td colspan="4">Carregando…</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase-config.js"></script>
+<script src="../js/auth.js"></script>
+<script src="clientes.js"></script>
+</body>
+</html>

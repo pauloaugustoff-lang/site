@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Processo — Bessoni &amp; Fortes</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="../assets/img/bf-mark-navy.png">
+<link rel="stylesheet" href="../css/style.css?v=13">
+</head>
+<body>
+
+<div class="portal-shell">
+  <aside class="portal-sidebar">
+    <a class="portal-brand" href="../index.html" aria-label="Bessoni & Fortes">
+      <img src="../assets/img/logo-wordmark-white.png" alt="Bessoni & Fortes">
+    </a>
+
+    <nav class="portal-nav">
+      <a class="portal-nav-link" href="admin.html">Painel</a>
+      <a class="portal-nav-link is-active" href="clientes.html">Cliente</a>
+      <a class="portal-nav-link" href="cadastro-de-cliente.html">Cadastro</a>
+    </nav>
+
+    <div class="portal-sidebar-foot">
+      <div class="portal-who">
+        <span data-user-nome>—</span>
+        <span class="tag">Escritório</span>
+      </div>
+      <button class="portal-logout" type="button" data-logout>Sair</button>
+    </div>
+  </aside>
+
+  <div class="portal-content">
+    <main class="portal-main">
+
+      <div class="case-header">
+        <a class="portal-inline-link back" data-voltar-cliente href="clientes.html">← Voltar ao cliente</a>
+        <h1 data-processo-titulo>Carregando…</h1>
+        <div class="case-chips" data-processo-chips></div>
+        <div class="case-meta" data-processo-meta></div>
+      </div>
+
+      <div class="processo-layout">
+        <div>
+          <!-- DETALHES -->
+          <section class="portal-section">
+            <h2>Dados do processo</h2>
+
+            <form class="form-grid" id="form-processo" data-form="processo">
+              <div class="field">
+                <label for="proc-categoria">Categoria</label>
+                <select id="proc-categoria" required>
+                  <option value="prestacao_contas">Prestação de contas</option>
+                  <option value="aije">AIJE</option>
+                  <option value="representacao">Representação</option>
+                  <option value="registro_candidatura">Registro de candidatura</option>
+                  <option value="drap">DRAP</option>
+                  <option value="outro">Outro</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="proc-subcategoria">Subcategoria</label>
+                <input type="text" id="proc-subcategoria" placeholder="Ex: Anual / Eleitoral">
+              </div>
+              <div class="field">
+                <label for="proc-titulo">Título</label>
+                <input type="text" id="proc-titulo" placeholder="Ex: Prestação de contas 2020">
+              </div>
+              <div class="field">
+                <label for="proc-ano">Ano</label>
+                <input type="number" id="proc-ano" placeholder="Ex: 2020" min="2000" max="2100">
+              </div>
+              <div class="field">
+                <label for="proc-numero">Nº do processo</label>
+                <input type="text" id="proc-numero" placeholder="Opcional">
+              </div>
+              <div class="field">
+                <label for="proc-orgaojulgador">Órgão julgador</label>
+                <input type="text" id="proc-orgaojulgador" placeholder="Ex: TSE ou TRE-BA">
+              </div>
+              <div class="field">
+                <label for="proc-foro">Foro</label>
+                <input type="text" id="proc-foro" placeholder="Opcional">
+              </div>
+              <div class="field">
+                <label for="proc-status">Status</label>
+                <select id="proc-status">
+                  <option value="em_andamento">Em andamento</option>
+                  <option value="aguardando_diligencia">Aguardando diligência</option>
+                  <option value="concluido">Concluído</option>
+                </select>
+              </div>
+              <div class="field" data-resultado-select-wrap>
+                <label for="proc-resultado-select">Resultado</label>
+                <select id="proc-resultado-select">
+                  <option value="">— sem resultado ainda —</option>
+                  <option value="aprovadas">Aprovadas</option>
+                  <option value="aprovadas_com_ressalvas">Aprovadas com ressalvas</option>
+                  <option value="desaprovadas">Desaprovadas</option>
+                  <option value="nao_prestadas">Não prestadas</option>
+                </select>
+              </div>
+              <div class="field" data-resultado-texto-wrap hidden>
+                <label for="proc-resultado-texto">Resultado</label>
+                <input type="text" id="proc-resultado-texto" placeholder="Ex: Deferido / Indeferido / Procedente...">
+              </div>
+              <div class="field">
+                <label for="proc-data-decisao">Data da decisão</label>
+                <input type="date" id="proc-data-decisao">
+              </div>
+              <div class="field">
+                <label for="proc-data-protocolo">Data de protocolo</label>
+                <input type="date" id="proc-data-protocolo">
+              </div>
+              <div class="field" style="grid-column: 1 / -1;">
+                <label for="proc-observacoes">Observações</label>
+                <input type="text" id="proc-observacoes" placeholder="Opcional">
+              </div>
+            </form>
+            <div class="portal-form-actions">
+              <button class="btn btn-ghost-light" type="submit" form="form-processo">Salvar alterações</button>
+              <span class="portal-inline-msg" data-msg="processo"></span>
+            </div>
+          </section>
+        </div>
+
+        <aside>
+          <div class="sidebar-card">
+            <h3>Obrigações</h3>
+            <div data-obrigacoes-resumo><span class="empty-note">Carregando…</span></div>
+          </div>
+
+          <div class="sidebar-card">
+            <h3>Nova obrigação</h3>
+            <form id="form-obrigacao" data-form="obrigacao">
+              <div class="field" style="margin-top:0;">
+                <label for="obrigacao-tipo">Tipo</label>
+                <select id="obrigacao-tipo" required>
+                  <option value="recolhimento_uniao">Recolhimento à União</option>
+                  <option value="aplicacao_politica_mulher">Aplicação em política da mulher</option>
+                  <option value="aplicacao_minorias">Aplicação em ações afirmativas / minorias</option>
+                  <option value="multa">Multa</option>
+                  <option value="outra">Outra</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="obrigacao-descricao">Descrição</label>
+                <input type="text" id="obrigacao-descricao" required placeholder="Ex: Aplicar em política da mulher">
+              </div>
+              <div class="field">
+                <label for="obrigacao-valor">Valor (R$)</label>
+                <input type="number" id="obrigacao-valor" step="0.01" min="0" placeholder="Opcional">
+              </div>
+              <div class="field">
+                <label for="obrigacao-exercicio-cumprimento">Exercício de cumprimento</label>
+                <input type="number" id="obrigacao-exercicio-cumprimento" min="2000" max="2100" placeholder="Ex: 2021">
+              </div>
+              <div class="field">
+                <label for="obrigacao-prazo">Prazo</label>
+                <input type="date" id="obrigacao-prazo">
+              </div>
+              <div class="field">
+                <label for="obrigacao-status">Status</label>
+                <select id="obrigacao-status">
+                  <option value="pendente">Pendente</option>
+                  <option value="cumprida">Cumprida</option>
+                </select>
+              </div>
+              <div class="portal-form-actions">
+                <button class="btn btn-ghost-light" type="submit" form="form-obrigacao">Salvar obrigação</button>
+              </div>
+              <span class="portal-inline-msg" data-msg="obrigacao"></span>
+            </form>
+          </div>
+        </aside>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase-config.js"></script>
+<script src="../js/auth.js"></script>
+<script src="processo.js"></script>
+</body>
+</html>

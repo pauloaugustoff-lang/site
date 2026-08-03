@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel — Bessoni &amp; Fortes</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="../assets/img/bf-mark-navy.png">
+<link rel="stylesheet" href="../css/style.css?v=13">
+</head>
+<body>
+
+<div class="portal-shell">
+  <aside class="portal-sidebar">
+    <a class="portal-brand" href="../index.html" aria-label="Bessoni & Fortes">
+      <img src="../assets/img/logo-wordmark-white.png" alt="Bessoni & Fortes">
+    </a>
+
+    <nav class="portal-nav">
+      <a class="portal-nav-link is-active" href="admin.html">Painel</a>
+      <a class="portal-nav-link" href="clientes.html">Cliente</a>
+      <a class="portal-nav-link" href="cadastro-de-cliente.html">Cadastro</a>
+    </nav>
+
+    <div class="portal-sidebar-foot">
+      <div class="portal-who">
+        <span data-user-nome>—</span>
+        <span class="tag">Escritório</span>
+      </div>
+      <button class="portal-logout" type="button" data-logout>Sair</button>
+    </div>
+  </aside>
+
+  <div class="portal-content">
+    <main class="portal-main">
+
+      <div class="portal-head">
+        <h1>Painel</h1>
+        <p>Panorama de processos e obrigações de todos os clientes do escritório.</p>
+      </div>
+
+      <section class="portal-section">
+        <div class="field" style="margin-top: 0;">
+          <label for="busca-geral">Buscar clientes e processos</label>
+          <input type="text" id="busca-geral" placeholder="Nome do cliente, título ou nº do processo...">
+        </div>
+        <div data-busca-resultados hidden style="margin-top: 1.4rem;">
+          <div data-busca-clientes></div>
+          <div data-busca-processos style="margin-top: 1.4rem;"></div>
+        </div>
+      </section>
+
+      <div class="portal-stats">
+        <div class="portal-stat">
+          <span class="num" data-stat="total">—</span>
+          <span class="label">Obrigações no total</span>
+        </div>
+        <div class="portal-stat is-alert">
+          <span class="num" data-stat="pendentes">—</span>
+          <span class="label">Pendentes</span>
+        </div>
+        <div class="portal-stat is-alert">
+          <span class="num" data-stat="vencidas">—</span>
+          <span class="label">Com prazo vencido</span>
+        </div>
+        <div class="portal-stat">
+          <span class="num" data-stat="cumpridas">—</span>
+          <span class="label">Já cumpridas</span>
+        </div>
+      </div>
+
+      <section class="portal-section" id="processos">
+        <h2>Processos recentes</h2>
+        <p class="portal-section-desc">Últimos processos cadastrados, de qualquer cliente.</p>
+
+        <div class="table-wrap">
+          <table class="portal-table">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Categoria</th>
+                <th>Ano</th>
+                <th>Status</th>
+                <th>Resultado</th>
+              </tr>
+            </thead>
+            <tbody data-list="processos"><tr class="empty-row"><td colspan="5">Carregando…</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="portal-section" id="obrigacoes">
+        <h2>Obrigações</h2>
+
+        <div class="portal-toolbar">
+          <div class="field">
+            <label for="filtro-cliente">Cliente</label>
+            <select id="filtro-cliente"><option value="">Todos</option></select>
+          </div>
+          <div class="field">
+            <label for="filtro-exercicio">Exercício</label>
+            <select id="filtro-exercicio"><option value="">Todos</option></select>
+          </div>
+          <div class="field">
+            <label for="filtro-status">Status</label>
+            <select id="filtro-status">
+              <option value="">Todos</option>
+              <option value="pendente">Pendente</option>
+              <option value="vencida">Vencida</option>
+              <option value="cumprida">Cumprida</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="portal-table">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Categoria</th>
+                <th>Obrigação</th>
+                <th>Valor</th>
+                <th>Prazo</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody data-list="obrigacoes"><tr class="empty-row"><td colspan="6">Carregando…</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase-config.js"></script>
+<script src="../js/auth.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>
