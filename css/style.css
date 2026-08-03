@@ -576,7 +576,7 @@ section{ padding: clamp(4.5rem, 9vw, 8rem) 0; }
 /* --- Sócios --- */
 .partners-grid{
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
   gap: clamp(1.6rem, 3vw, 2.4rem);
 }
 .partner-card{
