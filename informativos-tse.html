@@ -4,25 +4,26 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Informativos TSE — Bessoni &amp; Fortes</title>
-<meta name="description" content="Boletins e informativos sobre o calendário eleitoral e decisões do TSE, por Bessoni & Fortes Sociedade de Advogados.">
+<meta name="description" content="Jurisprudência consolidada do TSE organizada por tema, relevância e tribunal de origem, por Bessoni & Fortes Sociedade de Advogados.">
 <link rel="icon" type="image/png" href="assets/img/bf-mark-navy.png">
-<link rel="stylesheet" href="css/style.css?v=13">
+<link rel="stylesheet" href="css/style.css?v=16">
 </head>
 <body>
 
 <a class="visually-hidden" href="#conteudo">Pular para o conteúdo</a>
 
-<header class="site-header is-scrolled">
+<header class="site-header">
   <div class="container">
     <a class="brand" href="index.html" aria-label="Bessoni & Fortes — página inicial">
-      <img src="assets/img/logo-wordmark-navy.png" alt="Bessoni & Fortes, Sociedade de Advogados">
+      <img class="logo-on-dark" src="assets/img/logo-wordmark-white.png" alt="Bessoni & Fortes, Sociedade de Advogados">
+      <img class="logo-on-light" src="assets/img/logo-wordmark-navy.png" alt="Bessoni & Fortes, Sociedade de Advogados">
     </a>
 
     <nav class="nav-desktop" aria-label="Navegação principal">
       <a href="index.html">Home</a>
       <a href="index.html#escritorio">O escritório</a>
       <a href="index.html#areas">Áreas de atuação</a>
-      <a href="index.html#socios">Sócios</a>
+      <a href="index.html#socios">Equipe</a>
       <a href="index.html#contato">Contato</a>
       <a href="informativos-tse.html">Informativos TSE</a>
       <a class="nav-cta" href="login.html">Portal do cliente</a>
@@ -38,7 +39,7 @@
   <a href="index.html">Home</a>
   <a href="index.html#escritorio">O escritório</a>
   <a href="index.html#areas">Áreas de atuação</a>
-  <a href="index.html#socios">Sócios</a>
+  <a href="index.html#socios">Equipe</a>
   <a href="index.html#contato">Contato</a>
   <a href="informativos-tse.html">Informativos TSE</a>
   <a class="nav-cta" href="login.html">Portal do cliente</a>
@@ -48,18 +49,62 @@
   <section class="page-hero">
     <div class="container">
       <p class="eyebrow on-dark">Informativos TSE</p>
-      <h1>Boletins sobre o calendário e as decisões eleitorais</h1>
-      <p>Análises objetivas do escritório sobre resoluções, prazos e decisões do Tribunal Superior Eleitoral relevantes para campanhas e organizações partidárias.</p>
+      <h1>Jurisprudência consolidada do TSE</h1>
+      <p>Clique em qualquer julgado para ver a tese, o fundamento legal e o impacto prático. Filtre por categoria, tribunal de origem ou busque por palavra-chave, número de processo ou trecho da decisão.</p>
     </div>
   </section>
 
-  <section class="section-light">
+  <section class="section-light tse-section">
     <div class="container">
-      <div class="empty-state" data-reveal>
-        <img class="mark" src="assets/img/bf-mark-navy.png" alt="">
-        <h2>Novos informativos em breve</h2>
-        <p>Esta seção está sendo preparada para publicar os boletins do escritório assim que forem produzidos. Para dúvidas sobre um prazo específico do calendário eleitoral, fale diretamente com a equipe.</p>
-        <a class="btn btn-ghost-light" href="index.html#contato">Falar com o escritório</a>
+      <div class="tse-widget">
+
+        <div data-reveal>
+          <p class="eyebrow">Buscar jurisprudência</p>
+          <div class="search-wrap">
+            <input class="search-input" type="text" id="searchInput" autocomplete="off" placeholder="Buscar por palavra-chave, assunto, número do processo, fundamento..." onkeydown="if(event.key==='Enter')doSearch()">
+            <button class="search-btn" onclick="doSearch()">Pesquisar</button>
+            <button class="search-clear" id="searchClear" onclick="clearSearch()">✕ Limpar</button>
+          </div>
+
+          <div class="tre-bar" id="treBar"></div>
+
+          <div class="info-select-wrap">
+            <span class="info-select-label">Informativo:</span>
+            <select class="info-select" id="infoSelect" onchange="onInfoChange(this.value)">
+              <option value="">Todos os informativos</option>
+            </select>
+            <span class="info-select-count" id="infoSelectCount"></span>
+          </div>
+
+          <div class="toolbar">
+            <div class="filters" id="filters"></div>
+            <div class="bulk-btns">
+              <button class="bulk-btn" onclick="expandAll()">Expandir todos</button>
+              <button class="bulk-btn" onclick="collapseAll()">Recolher todos</button>
+            </div>
+          </div>
+
+          <div class="legend">
+            <span><span class="ldot" style="background:#dc2626"></span>Máxima relevância</span>
+            <span><span class="ldot" style="background:#d97706"></span>Alta relevância</span>
+            <span><span class="ldot" style="background:#16a34a"></span>Média relevância</span>
+            <span><span class="ldot" style="background:#6b7280"></span>Baixa relevância</span>
+          </div>
+        </div>
+
+        <div class="result-count" id="resultCount"></div>
+        <div class="list" id="list"></div>
+        <div class="pagination" id="pagination"></div>
+
+      </div>
+    </div>
+  </section>
+
+  <section class="tse-source-bar">
+    <div class="container">
+      <div class="tse-source-inner">
+        <span><strong>Bessoni &amp; Fortes Sociedade de Advogados</strong></span>                                                
+        <span>Informativos disponíveis: 2019–2026 · <span id="versao-label">v1.0 · Abr 2026</span> · <a href="#" onclick="showDisclaimer();return false;">Isenção de Responsabilidade</a></span>
       </div>
     </div>
   </section>
@@ -77,7 +122,7 @@
           <div class="t">Navegação</div>
           <a href="index.html#escritorio">O escritório</a>
           <a href="index.html#areas">Áreas de atuação</a>
-          <a href="index.html#socios">Sócios</a>
+          <a href="index.html#socios">Equipe</a>
           <a href="index.html#contato">Contato</a>
           <a href="informativos-tse.html">Informativos TSE</a>
         </div>
@@ -100,6 +145,61 @@
   </div>
 </footer>
 
+<div class="disclaimer-overlay" id="disclaimerOverlay" onclick="if(event.target===this)closeDisclaimer()">
+  <div class="disclaimer-box">
+    <button class="disclaimer-close" onclick="closeDisclaimer()" aria-label="Fechar">✕</button>
+    <h2>Isenção de Responsabilidade</h2>
+
+    <h3>Natureza da plataforma</h3>
+    <p>Este portal é disponibilizado gratuitamente por <strong>Bessoni &amp; Fortes Sociedade de Advogados</strong> com finalidade exclusivamente acadêmica e profissional, tendo por objetivo auxiliar profissionais do Direito Eleitoral no acompanhamento da jurisprudência do Tribunal Superior Eleitoral (TSE).</p>
+
+    <h3>Conteúdo dos informativos</h3>
+    <p>Os resumos, ementas e teses aqui apresentados são baseados nos Informativos de Jurisprudência do TSE (Infojur TSE) publicados pelo próprio Tribunal, os quais consistem em <strong>resumos não oficiais</strong> de decisões pendentes de publicação e reprodução de acórdãos publicados no DJe-TSE. O conteúdo desta plataforma é compilação e organização desses informativos para fins de consulta rápida.</p>
+
+    <h3>Dever de verificação</h3>
+    <p>Todo profissional do Direito tem o dever legal e deontológico de verificar o teor integral dos julgados antes de utilizá-los em petições, pareceres, memoriais ou qualquer ato processual. <strong>Não substitua a pesquisa direta no portal do TSE (tse.jus.br) pela consulta a este compilado.</strong> A jurisprudência pode ter sido modificada, superada ou complementada por julgados posteriores não incluídos na plataforma.</p>
+
+    <h3>Limitações de cobertura</h3>
+    <p>Esta plataforma cobre os seguintes informativos TSE:</p>
+    <ul>
+      <li><strong>2019 (Ano XXI)</strong> — informativos disponíveis a partir do n. 4</li>
+      <li><strong>2020 a 2024 (Anos XXII a XXVI)</strong> — cobertura integral</li>
+      <li><strong>2025 e 2026 (Anos XXVII e XXVIII)</strong> — cobertura parcial (informativos publicados até a data desta versão)</li>
+      <li><strong>2011 a 2018</strong> — não disponíveis nesta versão</li>
+    </ul>
+    <p>Apenas os informativos processados e inseridos manualmente nesta plataforma estão disponíveis. O compilado NÃO é atualizado automaticamente a partir do site do TSE.</p>
+
+    <h3>Critérios de classificação de relevância dos julgados</h3>
+    <p>Cada julgado é classificado em um dos quatro níveis de relevância abaixo, com base no impacto prático esperado para a atuação eleitoral:</p>
+    <ul>
+      <li><strong>🔴 Máxima relevância:</strong> teses cuja inobservância pode causar nulidade processual automática, multa imediata ou cassação de mandato de forma direta e irreversível. Exemplos: omissão do vice-prefeito como litisconsorte em AIME, citação de julgado inexistente (gerado por IA), ausência de registro das redes sociais no RRC/DRAP, desincompatibilização apenas formal sem afastamento de fato.</li>
+      <li><strong>🟡 Alta relevância:</strong> teses com impacto direto na estratégia de campanha, na prestação de contas ou na defesa processual — não causam consequência automática, mas criam risco significativo se ignoradas. Exemplos: impulsionamento de conteúdo negativo, multa por divulgação de desinformação (art. 57-D), abuso do poder econômico em AIJE, irregularidades graves em contas de campanha.</li>
+      <li><strong>🟢 Média relevância:</strong> teses que reforçam entendimentos já consolidados ou cujo impacto é mais circunscrito a situações específicas. Exemplos: prazo para representação por pesquisa eleitoral sem registro, cancelamento de nota fiscal como prova, domicílio eleitoral de conceito amplo.</li>
+      <li><strong>⚪ Baixa relevância:</strong> teses de interesse institucional ou administrativo sem impacto direto em campanhas, prestação de contas ou processos eleitorais comuns. Exemplos: vedação à reeleição para cargos diretivos em TRE, composição de lista tríplice.</li>
+    </ul>
+    <p><strong>Importante:</strong> a classificação é de caráter meramente indicativo, baseada em análise profissional do conteúdo de cada julgado. Não constitui avaliação jurídica vinculante. O profissional deve realizar sua própria avaliação de relevância conforme o caso concreto.</p>
+
+    <h3>Conflitos e evoluções jurisprudenciais</h3>
+    <p>Quando identificado, este portal sinaliza julgados cujo entendimento possa ter sido superado ou modificado por decisão posterior. Contudo, tal sinalização é indicativa e pode não ser exaustiva. <strong>A ausência da sinalização de conflito não garante que o julgado representa o entendimento atual do TSE.</strong></p>
+
+    <h3>Exclusão de responsabilidade</h3>
+    <p>Bessoni &amp; Fortes Sociedade de Advogados não se responsabiliza por:</p>
+    <ul>
+      <li>Imprecisões, omissões ou erros nos resumos apresentados;</li>
+      <li>Uso indevido das informações constantes desta plataforma;</li>
+      <li>Decisões processuais ou estratégicas tomadas com base exclusiva neste compilado;</li>
+      <li>Desatualização dos dados em relação à jurisprudência vigente do TSE;</li>
+      <li>Eventuais danos, prejuízos ou responsabilizações decorrentes do uso desta plataforma.</li>
+    </ul>
+
+    <h3>Uso adequado</h3>
+    <p>Esta plataforma destina-se ao uso por profissionais e estudantes do Direito como ferramenta complementar de pesquisa. Não deve ser utilizada como única fonte de consulta jurisprudencial para a elaboração de atos processuais.</p>
+
+    <p style="margin-top:20px;font-size:12px;color:var(--slate)">Bessoni &amp; Fortes Sociedade de Advogados · <em>Versão <span id="versao-disclaimer">1.0</span></em></p>
+  </div>
+</div>
+
 <script src="js/main.js"></script>
+<script src="js/informativos.js"></script>
 </body>
 </html>
