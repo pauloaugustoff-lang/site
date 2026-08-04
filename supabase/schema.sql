@@ -33,7 +33,7 @@ create extension if not exists pgcrypto;
 -- -------------------------------------------------------------
 create table partidos (
   id uuid primary key default gen_random_uuid(),
-  sigla text not null,
+  sigla text, -- opcional (pode não vir em importações de planilha)
   nome text not null,
   created_at timestamptz not null default now()
 );

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Importar planilha — Bessoni &amp; Fortes</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="../assets/img/bf-mark-navy.png">
+<link rel="stylesheet" href="../css/style.css?v=13">
+</head>
+<body>
+
+<div class="portal-shell">
+  <aside class="portal-sidebar">
+    <a class="portal-brand" href="../index.html" aria-label="Bessoni & Fortes">
+      <img src="../assets/img/logo-wordmark-white.png" alt="Bessoni & Fortes">
+    </a>
+
+    <nav class="portal-nav">
+      <a class="portal-nav-link" href="admin.html">Painel</a>
+      <a class="portal-nav-link" href="clientes.html">Cliente</a>
+      <a class="portal-nav-link is-active" href="cadastro-de-cliente.html">Cadastro</a>
+    </nav>
+
+    <div class="portal-sidebar-foot">
+      <div class="portal-who">
+        <span data-user-nome>—</span>
+        <span class="tag">Escritório</span>
+      </div>
+      <button class="portal-logout" type="button" data-logout>Sair</button>
+    </div>
+  </aside>
+
+  <div class="portal-content">
+    <main class="portal-main">
+
+      <div class="portal-head">
+        <a class="portal-inline-link" href="cadastro-de-cliente.html">← Voltar ao cadastro</a>
+        <h1 style="margin-top: .8rem;">Importar planilha</h1>
+        <p>Uma linha por processo (repita as colunas de cliente em cada linha do mesmo cliente). Se o processo tiver mais de uma obrigação, repita a linha inteira mudando só as colunas de obrigação.</p>
+      </div>
+
+      <section class="portal-section">
+        <h2>1 · Colunas esperadas</h2>
+        <p class="portal-section-desc">
+          Nome do Cliente · CPF/CNPJ · Nome do Partido · Nível · UF · Município · Cliente Superior ·
+          Processo (nº) · Categoria · Subcategoria · Título · Ano · Órgão Julgador · Status · Resultado ·
+          Data da decisão · Tipo de Obrigação · Descrição · Valor · Exercício de cumprimento
+        </p>
+        <p class="portal-section-desc">
+          Só <strong>Nome do Cliente</strong> e <strong>Categoria</strong> são obrigatórios. "Cliente Superior" deve
+          bater exatamente com o Nome do Cliente de outra linha (ex: o Diretório Nacional precisa aparecer numa
+          linha antes dos Diretórios Estaduais que o referenciam). Deixe "Tipo de Obrigação" em branco se a linha
+          não tiver obrigação. Só <strong>Descrição</strong> é texto livre — todo o resto que tem lista abaixo
+          precisa vir <strong>exatamente</strong> como está escrito (linha com valor errado não é importada, e
+          aparece no relatório de avisos no final):
+        </p>
+        <p class="portal-section-desc">
+          <strong>Categoria:</strong> Prestação de Contas · AIJE · Representação · Registro de Candidatura · DRAP · Outro<br>
+          <strong>Nível:</strong> Nacional · Estadual · Municipal<br>
+          <strong>Status:</strong> Em andamento · Aguardando diligência · Concluído<br>
+          <strong>Resultado</strong> (só quando Categoria = Prestação de Contas): Aprovadas · Aprovadas com ressalvas · Desaprovadas · Não prestadas<br>
+          <strong>Tipo de Obrigação:</strong> Recolhimento à União · Aplicação em política da mulher · Aplicação em ações afirmativas / minorias · Multa · Outra
+        </p>
+        <p class="portal-section-desc">
+          Para categorias diferentes de Prestação de Contas, o campo Resultado não tem lista fixa no sistema — pode
+          preencher livremente (ex: "Deferido", "Procedente").
+        </p>
+        <div class="portal-form-actions">
+          <button class="btn btn-ghost-light" type="button" data-baixar-modelo">Baixar modelo (.xlsx)</button>
+          <span class="portal-inline-msg" data-msg="modelo"></span>
+        </div>
+      </section>
+
+      <section class="portal-section">
+        <h2>2 · Enviar arquivo</h2>
+        <div class="field" style="margin-top: 0;">
+          <label for="arquivo-planilha">Arquivo (.xlsx, .xls ou .csv)</label>
+          <input type="file" id="arquivo-planilha" accept=".xlsx,.xls,.csv">
+        </div>
+        <div class="portal-form-actions">
+          <button class="btn btn-ghost-light" type="button" data-ler-planilha>Ler planilha</button>
+          <span class="portal-inline-msg" data-msg="leitura"></span>
+        </div>
+      </section>
+
+      <section class="portal-section" data-secao-preview hidden>
+        <h2>3 · Conferir antes de importar</h2>
+        <p class="portal-section-desc" data-preview-resumo></p>
+        <div class="table-wrap">
+          <table class="portal-table">
+            <thead>
+              <tr><th>Cliente</th><th>Partido</th><th>Categoria</th><th>Ano</th><th>Obrigação</th></tr>
+            </thead>
+            <tbody data-preview-linhas></tbody>
+          </table>
+        </div>
+        <div class="portal-form-actions">
+          <button class="btn btn-primary" type="button" data-confirmar-importacao>Confirmar importação</button>
+          <span class="portal-inline-msg" data-msg="importacao"></span>
+        </div>
+      </section>
+
+      <section class="portal-section" data-secao-resultado hidden>
+        <h2>4 · Resultado</h2>
+        <div data-resultado-resumo class="portal-stats" style="margin-top: 0;"></div>
+        <div style="margin-top: 1.4rem;" data-resultado-avisos></div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase-config.js"></script>
+<script src="../js/auth.js"></script>
+<script src="importar.js"></script>
+</body>
+</html>

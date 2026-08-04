@@ -33,7 +33,7 @@
       return "<tr>" +
         "<td>" + indent + c.nome + "</td>" +
         "<td>" + tipoClienteLabel(c) + "</td>" +
-        "<td>" + (c.partidos ? c.partidos.sigla : "—") + "</td>" +
+        "<td>" + (c.partidos ? (c.partidos.sigla || c.partidos.nome) : "—") + "</td>" +
         '<td><a class="portal-inline-link" href="cliente.html?id=' + c.id + '">Abrir pasta</a></td>' +
       "</tr>";
     }).join("");

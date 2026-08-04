@@ -39,7 +39,7 @@
     var { data, error } = await bfSupabase.from("partidos").select("*").order("sigla");
     if (error) { console.error(error); return; }
 
-    var options = (data || []).map(function (p) { return '<option value="' + p.id + '">' + p.sigla + " — " + p.nome + "</option>"; }).join("");
+    var options = (data || []).map(function (p) { return '<option value="' + p.id + '">' + (p.sigla ? p.sigla + " — " + p.nome : p.nome) + "</option>"; }).join("");
     document.getElementById("cad-partido").innerHTML =
       '<option value="">— não vinculado a partido —</option>' + options;
   }

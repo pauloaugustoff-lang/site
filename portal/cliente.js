@@ -77,7 +77,7 @@
     var partes = [];
     if (data.nivel) partes.push("Órgão " + (LABELS.nivel[data.nivel] || data.nivel));
     if (data.eh_candidato) partes.push("Candidato" + (data.cargo_disputado ? " a " + data.cargo_disputado : "") + (data.ano_eleicao ? " · " + data.ano_eleicao : ""));
-    if (data.partidos) partes.push(data.partidos.sigla + " — " + data.partidos.nome);
+    if (data.partidos) partes.push(data.partidos.sigla ? data.partidos.sigla + " — " + data.partidos.nome : data.partidos.nome);
     if ([data.uf, data.municipio].filter(Boolean).length) partes.push([data.uf, data.municipio].filter(Boolean).join(" / "));
     document.querySelector("[data-cliente-info]").textContent = partes.length ? partes.join(" · ") : "Cliente sem categoria definida";
   }
