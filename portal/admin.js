@@ -17,14 +17,14 @@
       desaprovadas: "Desaprovadas",
       nao_prestadas: "Não prestadas",
     },
-    tipoObrigacao: {
+    tipoDeterminacao: {
       recolhimento_uniao: "Recolhimento à União",
       aplicacao_politica_mulher: "Aplicação em política da mulher",
       aplicacao_minorias: "Aplicação em ações afirmativas / minorias",
       multa: "Multa",
       outra: "Outra",
     },
-    statusObrigacao: { pendente: "Pendente", cumprida: "Cumprida" },
+    statusDeterminacao: { pendente: "Pendente", cumprida: "Cumprida" },
   };
 
   function fmtMoeda(v) {
@@ -49,33 +49,33 @@
   }
   function statusBadge(row) {
     var key = statusKey(row);
-    var label = key === "vencida" ? "Vencida" : LABELS.statusObrigacao[row.status] || row.status;
+    var label = key === "vencida" ? "Vencida" : LABELS.statusDeterminacao[row.status] || row.status;
     return '<span class="status-badge ' + key + '">' + label + "</span>";
   }
 
-  var linhasObrigacoes = [];
+  var linhasDeterminacoes = [];
 
-  function achatarObrigacoes(obrigacoes) {
-    return obrigacoes.map(function (o) {
-      var pr = o.processos || {};
+  function achatarDeterminacoes(determinacoes) {
+    return determinacoes.map(function (d) {
+      var pr = d.processos || {};
       var cliente = pr.clientes || {};
       return {
-        id: o.id,
+        id: d.id,
         clienteNome: cliente.nome || "—",
         categoria: pr.categoria || null,
         ano: pr.ano || null,
-        tipo: o.tipo,
-        descricao: o.descricao,
-        valor: o.valor,
-        prazo: o.prazo,
-        status: o.status,
+        tipo: d.tipo,
+        descricao: d.descricao,
+        valor: d.valor,
+        prazo: d.prazo,
+        status: d.status,
       };
     });
   }
 
   function popularFiltros() {
-    var clientesNomes = Array.from(new Set(linhasObrigacoes.map(function (l) { return l.clienteNome; }))).sort();
-    var exercicios = Array.from(new Set(linhasObrigacoes.map(function (l) { return l.ano; }).filter(Boolean))).sort(function (a, b) { return b - a; });
+    var clientesNomes = Array.from(new Set(linhasDeterminacoes.map(function (l) { return l.clienteNome; }))).sort();
+    var exercicios = Array.from(new Set(linhasDeterminacoes.map(function (l) { return l.ano; }).filter(Boolean))).sort(function (a, b) { return b - a; });
 
     document.getElementById("filtro-cliente").innerHTML =
       '<option value="">Todos</option>' + clientesNomes.map(function (c) { return '<option value="' + c + '">' + c + "</option>"; }).join("");
@@ -93,17 +93,17 @@
     document.querySelector('[data-stat="cumpridas"]').textContent = cumpridas;
   }
 
-  function renderObrigacoesTabela(lista) {
-    var tbody = document.querySelector('[data-list="obrigacoes"]');
+  function renderDeterminacoesTabela(lista) {
+    var tbody = document.querySelector('[data-list="determinacoes"]');
     if (!lista.length) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Nenhuma obrigação encontrada para esse filtro.</td></tr>';
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Nenhuma determinação encontrada para esse filtro.</td></tr>';
       return;
     }
     tbody.innerHTML = lista.map(function (l) {
       return "<tr>" +
         "<td>" + l.clienteNome + "</td>" +
         "<td>" + (LABELS.categoria[l.categoria] || "—") + "</td>" +
-        "<td>" + (LABELS.tipoObrigacao[l.tipo] || l.tipo) + " — " + l.descricao + "</td>" +
+        "<td>" + (LABELS.tipoDeterminacao[l.tipo] || l.tipo) + " — " + l.descricao + "</td>" +
         "<td>" + fmtMoeda(l.valor) + "</td>" +
         "<td>" + fmtData(l.prazo) + "</td>" +
         "<td>" + statusBadge(l) + "</td>" +
@@ -116,7 +116,7 @@
     var exercicio = document.getElementById("filtro-exercicio").value;
     var status = document.getElementById("filtro-status").value;
 
-    var filtradas = linhasObrigacoes.filter(function (l) {
+    var filtradas = linhasDeterminacoes.filter(function (l) {
       if (cliente && l.clienteNome !== cliente) return false;
       if (exercicio && String(l.ano) !== exercicio) return false;
       if (status && statusKey(l) !== status) return false;
@@ -124,7 +124,7 @@
     });
 
     renderStats(filtradas);
-    renderObrigacoesTabela(filtradas);
+    renderDeterminacoesTabela(filtradas);
   }
 
   async function carregarProcessos() {
@@ -155,20 +155,20 @@
       : '<tr class="empty-row"><td colspan="5">Nenhum processo cadastrado ainda.</td></tr>';
   }
 
-  async function carregarObrigacoes() {
+  async function carregarDeterminacoes() {
     var { data, error } = await bfSupabase
-      .from("obrigacoes")
+      .from("determinacoes")
       .select("*, processos(categoria, ano, clientes(nome))")
       .order("prazo", { ascending: true, nullsFirst: false });
 
     if (error) {
       console.error(error);
-      document.querySelector('[data-list="obrigacoes"]').innerHTML =
+      document.querySelector('[data-list="determinacoes"]').innerHTML =
         '<tr class="empty-row"><td colspan="6">Não foi possível carregar os dados agora.</td></tr>';
       return;
     }
 
-    linhasObrigacoes = achatarObrigacoes(data || []);
+    linhasDeterminacoes = achatarDeterminacoes(data || []);
     popularFiltros();
     aplicarFiltros();
   }
@@ -250,7 +250,7 @@
     iniciarFiltros();
     iniciarBusca();
     await carregarProcessos();
-    await carregarObrigacoes();
+    await carregarDeterminacoes();
   }
 
   init();

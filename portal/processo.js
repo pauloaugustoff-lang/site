@@ -17,14 +17,14 @@
       desaprovadas: "Desaprovadas",
       nao_prestadas: "Não prestadas",
     },
-    tipoObrigacao: {
+    tipoDeterminacao: {
       recolhimento_uniao: "Recolhimento à União",
       aplicacao_politica_mulher: "Aplicação em política da mulher",
       aplicacao_minorias: "Aplicação em ações afirmativas / minorias",
       multa: "Multa",
       outra: "Outra",
     },
-    statusObrigacao: { pendente: "Pendente", cumprida: "Cumprida" },
+    statusDeterminacao: { pendente: "Pendente", cumprida: "Cumprida" },
   };
 
   var processoId = new URLSearchParams(location.search).get("id");
@@ -46,7 +46,7 @@
   function statusBadge(status, prazo) {
     var vencida = status === "pendente" && prazo && new Date(prazo + "T00:00:00") < new Date();
     var key = vencida ? "vencida" : status;
-    var label = vencida ? "Vencida" : LABELS.statusObrigacao[status] || status;
+    var label = vencida ? "Vencida" : LABELS.statusDeterminacao[status] || status;
     return '<span class="status-badge ' + key + '">' + label + "</span>";
   }
   function setMsg(key, text, isError) {
@@ -58,6 +58,13 @@
   function val(id) {
     var el = document.getElementById(id);
     return el.value.trim() === "" ? null : el.value.trim();
+  }
+  function boolVal(id) {
+    var v = document.getElementById(id).value;
+    return v === "" ? null : v === "true";
+  }
+  function setBoolField(id, v) {
+    document.getElementById(id).value = v === true ? "true" : v === false ? "false" : "";
   }
 
   function bindForm(key, handler) {
@@ -80,6 +87,9 @@
     var isContas = categoria === "prestacao_contas";
     document.querySelector("[data-resultado-select-wrap]").hidden = !isContas;
     document.querySelector("[data-resultado-texto-wrap]").hidden = isContas;
+    document.querySelectorAll("[data-campo-contas]").forEach(function (el) {
+      el.hidden = !isContas;
+    });
   }
 
   function preencherFormulario(p) {
@@ -93,6 +103,10 @@
     document.getElementById("proc-status").value = p.status;
     document.getElementById("proc-data-decisao").value = p.data_decisao || "";
     document.getElementById("proc-data-protocolo").value = p.data_protocolo || "";
+    document.getElementById("proc-responsavel").value = p.responsavel || "";
+    setBoolField("proc-houve-recurso", p.houve_recurso);
+    setBoolField("proc-transito-julgado", p.transito_julgado);
+    document.getElementById("proc-data-transito").value = p.data_transito || "";
     document.getElementById("proc-observacoes").value = p.observacoes || "";
 
     atualizarCampoResultado();
@@ -136,31 +150,32 @@
     meta.push("<span><strong>Cliente</strong> " + (data.clientes ? data.clientes.nome : "—") + "</span>");
     if (data.ano) meta.push("<span><strong>Ano</strong> " + data.ano + "</span>");
     if (data.orgao_julgador) meta.push("<span><strong>Órgão julgador</strong> " + data.orgao_julgador + "</span>");
+    if (data.responsavel) meta.push("<span><strong>Responsável</strong> " + data.responsavel + "</span>");
     document.querySelector("[data-processo-meta]").innerHTML = meta.join("");
 
     preencherFormulario(data);
   }
 
-  async function carregarObrigacoes() {
+  async function carregarDeterminacoes() {
     var { data, error } = await bfSupabase
-      .from("obrigacoes")
+      .from("determinacoes")
       .select("*")
       .eq("processo_id", processoId)
       .order("prazo", { ascending: true, nullsFirst: false });
 
-    var el = document.querySelector("[data-obrigacoes-resumo]");
+    var el = document.querySelector("[data-determinacoes-resumo]");
     if (error) { console.error(error); el.innerHTML = '<span class="empty-note">Não foi possível carregar.</span>'; return; }
-    var obrigacoes = data || [];
+    var determinacoes = data || [];
 
-    el.innerHTML = obrigacoes.length
-      ? '<div class="sidebar-list">' + obrigacoes.map(function (o) {
+    el.innerHTML = determinacoes.length
+      ? '<div class="sidebar-list">' + determinacoes.map(function (d) {
           return '<div class="sidebar-item">' +
-            '<div class="t">' + LABELS.tipoObrigacao[o.tipo] + " " + statusBadge(o.status, o.prazo) + "</div>" +
-            '<div class="d">' + o.descricao + "</div>" +
-            '<div class="d">' + fmtMoeda(o.valor) + " · prazo " + fmtData(o.prazo) + "</div>" +
+            '<div class="t">' + LABELS.tipoDeterminacao[d.tipo] + " " + statusBadge(d.status, d.prazo) + "</div>" +
+            '<div class="d">' + d.descricao + "</div>" +
+            '<div class="d">' + fmtMoeda(d.valor) + " · prazo " + fmtData(d.prazo) + "</div>" +
           "</div>";
         }).join("") + "</div>"
-      : '<span class="empty-note">Nenhuma obrigação cadastrada ainda.</span>';
+      : '<span class="empty-note">Nenhuma determinação cadastrada ainda.</span>';
   }
 
   function iniciarFormularios() {
@@ -181,6 +196,10 @@
         resultado: resultado,
         data_decisao: val("proc-data-decisao"),
         data_protocolo: val("proc-data-protocolo"),
+        responsavel: val("proc-responsavel"),
+        houve_recurso: categoria === "prestacao_contas" ? boolVal("proc-houve-recurso") : null,
+        transito_julgado: categoria === "prestacao_contas" ? boolVal("proc-transito-julgado") : null,
+        data_transito: categoria === "prestacao_contas" ? val("proc-data-transito") : null,
         observacoes: val("proc-observacoes"),
       };
       var { error } = await bfSupabase.from("processos").update(payload).eq("id", processoId);
@@ -188,21 +207,22 @@
       await carregarProcesso();
     });
 
-    bindForm("obrigacao", async function () {
+    bindForm("determinacao", async function () {
       var payload = {
         processo_id: processoId,
-        tipo: val("obrigacao-tipo"),
-        descricao: val("obrigacao-descricao"),
-        valor: val("obrigacao-valor") ? Number(val("obrigacao-valor")) : null,
-        exercicio_cumprimento: val("obrigacao-exercicio-cumprimento") ? Number(val("obrigacao-exercicio-cumprimento")) : null,
-        prazo: val("obrigacao-prazo"),
-        status: val("obrigacao-status") || "pendente",
+        tipo: val("determinacao-tipo"),
+        descricao: val("determinacao-descricao"),
+        valor: val("determinacao-valor") ? Number(val("determinacao-valor")) : null,
+        exercicio_cumprimento: val("determinacao-exercicio-cumprimento") ? Number(val("determinacao-exercicio-cumprimento")) : null,
+        prazo: val("determinacao-prazo"),
+        responsavel: val("determinacao-responsavel"),
+        status: val("determinacao-status") || "pendente",
       };
       if (!payload.tipo || !payload.descricao) throw new Error("preencha tipo e descrição");
-      var { error } = await bfSupabase.from("obrigacoes").insert(payload);
+      var { error } = await bfSupabase.from("determinacoes").insert(payload);
       if (error) throw error;
-      document.getElementById("form-obrigacao").reset();
-      await carregarObrigacoes();
+      document.getElementById("form-determinacao").reset();
+      await carregarDeterminacoes();
     });
   }
 
@@ -227,7 +247,7 @@
     });
 
     await carregarProcesso();
-    await carregarObrigacoes();
+    await carregarDeterminacoes();
     iniciarFormularios();
   }
 

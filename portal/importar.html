@@ -37,30 +37,31 @@
       <div class="portal-head">
         <a class="portal-inline-link" href="cadastro-de-cliente.html">← Voltar ao cadastro</a>
         <h1 style="margin-top: .8rem;">Importar planilha</h1>
-        <p>Uma linha por processo (repita as colunas de cliente em cada linha do mesmo cliente). Se o processo tiver mais de uma obrigação, repita a linha inteira mudando só as colunas de obrigação.</p>
+        <p>Uma linha por processo (repita as colunas de cliente em cada linha do mesmo cliente). Se o processo tiver mais de uma determinação, repita a linha inteira mudando só as colunas de determinação.</p>
       </div>
 
       <section class="portal-section">
         <h2>1 · Colunas esperadas</h2>
         <p class="portal-section-desc">
-          Nome do Cliente · CPF/CNPJ · Nome do Partido · Nível · UF · Município · Cliente Superior ·
+          Nome do Cliente · CPF/CNPJ · Nome do Partido · Tipo de Cliente · UF · Município · Cliente Superior ·
           Processo (nº) · Categoria · Subcategoria · Título · Ano · Órgão Julgador · Status · Resultado ·
-          Data da decisão · Tipo de Obrigação · Descrição · Valor · Exercício de cumprimento
+          Data da decisão · Tipo de Determinação · Descrição · Valor · Exercício de cumprimento
         </p>
         <p class="portal-section-desc">
           Só <strong>Nome do Cliente</strong> e <strong>Categoria</strong> são obrigatórios. "Cliente Superior" deve
           bater exatamente com o Nome do Cliente de outra linha (ex: o Diretório Nacional precisa aparecer numa
-          linha antes dos Diretórios Estaduais que o referenciam). Deixe "Tipo de Obrigação" em branco se a linha
-          não tiver obrigação. Só <strong>Descrição</strong> é texto livre — todo o resto que tem lista abaixo
+          linha antes dos Diretórios Estaduais que o referenciam). Se "Tipo de Cliente" ficar em branco, o sistema
+          tenta inferir pessoa física ou jurídica pelo CPF/CNPJ. Deixe "Tipo de Determinação" em branco se a linha
+          não tiver determinação. Só <strong>Descrição</strong> é texto livre — todo o resto que tem lista abaixo
           precisa vir <strong>exatamente</strong> como está escrito (linha com valor errado não é importada, e
           aparece no relatório de avisos no final):
         </p>
         <p class="portal-section-desc">
           <strong>Categoria:</strong> Prestação de Contas · AIJE · Representação · Registro de Candidatura · DRAP · Outro<br>
-          <strong>Nível:</strong> Nacional · Estadual · Municipal<br>
+          <strong>Tipo de Cliente:</strong> Diretório Nacional · Diretório Estadual · Diretório Municipal · Candidato · Pessoa Física · Pessoa Jurídica<br>
           <strong>Status:</strong> Em andamento · Aguardando diligência · Concluído<br>
           <strong>Resultado</strong> (só quando Categoria = Prestação de Contas): Aprovadas · Aprovadas com ressalvas · Desaprovadas · Não prestadas<br>
-          <strong>Tipo de Obrigação:</strong> Recolhimento à União · Aplicação em política da mulher · Aplicação em ações afirmativas / minorias · Multa · Outra
+          <strong>Tipo de Determinação:</strong> Recolhimento à União · Aplicação em política da mulher · Aplicação em ações afirmativas / minorias · Multa · Outra
         </p>
         <p class="portal-section-desc">
           Para categorias diferentes de Prestação de Contas, o campo Resultado não tem lista fixa no sistema — pode
@@ -90,7 +91,7 @@
         <div class="table-wrap">
           <table class="portal-table">
             <thead>
-              <tr><th>Cliente</th><th>Partido</th><th>Categoria</th><th>Ano</th><th>Obrigação</th></tr>
+              <tr><th>Cliente</th><th>Partido</th><th>Categoria</th><th>Ano</th><th>Determinação</th></tr>
             </thead>
             <tbody data-preview-linhas></tbody>
           </table>

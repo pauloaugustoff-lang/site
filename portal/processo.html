@@ -113,6 +113,30 @@
                 <label for="proc-data-protocolo">Data de protocolo</label>
                 <input type="date" id="proc-data-protocolo">
               </div>
+              <div class="field">
+                <label for="proc-responsavel">Advogado responsável</label>
+                <input type="text" id="proc-responsavel" placeholder="Opcional">
+              </div>
+              <div class="field" data-campo-contas hidden>
+                <label for="proc-houve-recurso">Houve recurso?</label>
+                <select id="proc-houve-recurso">
+                  <option value="">— não informado —</option>
+                  <option value="true">Sim</option>
+                  <option value="false">Não</option>
+                </select>
+              </div>
+              <div class="field" data-campo-contas hidden>
+                <label for="proc-transito-julgado">Trânsito em julgado?</label>
+                <select id="proc-transito-julgado">
+                  <option value="">— não informado —</option>
+                  <option value="true">Sim</option>
+                  <option value="false">Não</option>
+                </select>
+              </div>
+              <div class="field" data-campo-contas hidden>
+                <label for="proc-data-transito">Data do trânsito em julgado</label>
+                <input type="date" id="proc-data-transito">
+              </div>
               <div class="field" style="grid-column: 1 / -1;">
                 <label for="proc-observacoes">Observações</label>
                 <input type="text" id="proc-observacoes" placeholder="Opcional">
@@ -127,16 +151,16 @@
 
         <aside>
           <div class="sidebar-card">
-            <h3>Obrigações</h3>
-            <div data-obrigacoes-resumo><span class="empty-note">Carregando…</span></div>
+            <h3>Determinações</h3>
+            <div data-determinacoes-resumo><span class="empty-note">Carregando…</span></div>
           </div>
 
           <div class="sidebar-card">
-            <h3>Nova obrigação</h3>
-            <form id="form-obrigacao" data-form="obrigacao">
+            <h3>Nova determinação</h3>
+            <form id="form-determinacao" data-form="determinacao">
               <div class="field" style="margin-top:0;">
-                <label for="obrigacao-tipo">Tipo</label>
-                <select id="obrigacao-tipo" required>
+                <label for="determinacao-tipo">Tipo</label>
+                <select id="determinacao-tipo" required>
                   <option value="recolhimento_uniao">Recolhimento à União</option>
                   <option value="aplicacao_politica_mulher">Aplicação em política da mulher</option>
                   <option value="aplicacao_minorias">Aplicação em ações afirmativas / minorias</option>
@@ -145,32 +169,36 @@
                 </select>
               </div>
               <div class="field">
-                <label for="obrigacao-descricao">Descrição</label>
-                <input type="text" id="obrigacao-descricao" required placeholder="Ex: Aplicar em política da mulher">
+                <label for="determinacao-descricao">Descrição</label>
+                <input type="text" id="determinacao-descricao" required placeholder="Ex: Aplicar em política da mulher">
               </div>
               <div class="field">
-                <label for="obrigacao-valor">Valor (R$)</label>
-                <input type="number" id="obrigacao-valor" step="0.01" min="0" placeholder="Opcional">
+                <label for="determinacao-valor">Valor (R$)</label>
+                <input type="number" id="determinacao-valor" step="0.01" min="0" placeholder="Opcional">
               </div>
               <div class="field">
-                <label for="obrigacao-exercicio-cumprimento">Exercício de cumprimento</label>
-                <input type="number" id="obrigacao-exercicio-cumprimento" min="2000" max="2100" placeholder="Ex: 2021">
+                <label for="determinacao-exercicio-cumprimento">Exercício de cumprimento</label>
+                <input type="number" id="determinacao-exercicio-cumprimento" min="2000" max="2100" placeholder="Ex: 2021">
               </div>
               <div class="field">
-                <label for="obrigacao-prazo">Prazo</label>
-                <input type="date" id="obrigacao-prazo">
+                <label for="determinacao-prazo">Prazo</label>
+                <input type="date" id="determinacao-prazo">
               </div>
               <div class="field">
-                <label for="obrigacao-status">Status</label>
-                <select id="obrigacao-status">
+                <label for="determinacao-responsavel">Responsável</label>
+                <input type="text" id="determinacao-responsavel" placeholder="Opcional">
+              </div>
+              <div class="field">
+                <label for="determinacao-status">Status</label>
+                <select id="determinacao-status">
                   <option value="pendente">Pendente</option>
                   <option value="cumprida">Cumprida</option>
                 </select>
               </div>
               <div class="portal-form-actions">
-                <button class="btn btn-ghost-light" type="submit" form="form-obrigacao">Salvar obrigação</button>
+                <button class="btn btn-ghost-light" type="submit" form="form-determinacao">Salvar determinação</button>
               </div>
-              <span class="portal-inline-msg" data-msg="obrigacao"></span>
+              <span class="portal-inline-msg" data-msg="determinacao"></span>
             </form>
           </div>
         </aside>

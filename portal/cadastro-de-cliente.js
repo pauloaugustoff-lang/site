@@ -1,6 +1,8 @@
 (function () {
   "use strict";
 
+  var DIRETORIOS = ["diretorio_nacional", "diretorio_estadual", "diretorio_municipal"];
+
   function clienteDepth(path) {
     return path ? path.split(".").length - 1 : 0;
   }
@@ -15,8 +17,7 @@
     return el.value.trim() === "" ? null : el.value.trim();
   }
   function tipoSelecionado() {
-    var el = document.querySelector('input[name="cad-tipo"]:checked');
-    return el ? el.value : "nenhum";
+    return document.getElementById("cad-tipo-cliente").value;
   }
 
   function mascararDocumento(valor) {
@@ -57,7 +58,7 @@
     }).join("");
 
     document.getElementById("cad-pai").innerHTML =
-      '<option value="">— nenhum (é o órgão nacional) —</option>' + options;
+      '<option value="">— selecione —</option>' + options;
   }
 
   function bindForm(key, handler) {
@@ -79,15 +80,24 @@
 
   function atualizarCamposCliente() {
     var tipo = tipoSelecionado();
-    var ehPartido = tipo === "orgao";
+    var ehDiretorio = DIRETORIOS.indexOf(tipo) !== -1;
     var ehCandidato = tipo === "candidato";
-    var precisaPartido = ehPartido || ehCandidato;
+    var precisaPartido = ehDiretorio || ehCandidato;
+    var precisaUf = tipo === "diretorio_estadual" || tipo === "diretorio_municipal";
+    var precisaMunicipio = tipo === "diretorio_municipal";
+    var precisaPai = tipo === "diretorio_estadual" || tipo === "diretorio_municipal";
 
     document.querySelectorAll("[data-campo-partido]").forEach(function (el) {
       el.hidden = !precisaPartido;
     });
-    document.querySelectorAll("[data-campo-orgao]").forEach(function (el) {
-      el.hidden = !ehPartido;
+    document.querySelectorAll("[data-campo-uf]").forEach(function (el) {
+      el.hidden = !precisaUf;
+    });
+    document.querySelectorAll("[data-campo-municipio]").forEach(function (el) {
+      el.hidden = !precisaMunicipio;
+    });
+    document.querySelectorAll("[data-campo-pai]").forEach(function (el) {
+      el.hidden = !precisaPai;
     });
     document.querySelectorAll("[data-campo-candidato]").forEach(function (el) {
       el.hidden = !ehCandidato;
@@ -104,13 +114,7 @@
   }
 
   function iniciarFormularios() {
-    // Força "nenhum" no carregamento — alguns navegadores restauram a
-    // seleção de radio de uma visita anterior ao recarregar a página.
-    document.querySelector('input[name="cad-tipo"][value="nenhum"]').checked = true;
-
-    document.querySelectorAll('input[name="cad-tipo"]').forEach(function (radio) {
-      radio.addEventListener("change", atualizarCamposCliente);
-    });
+    document.getElementById("cad-tipo-cliente").addEventListener("change", atualizarCamposCliente);
     atualizarCamposCliente();
 
     document.getElementById("cad-documento").addEventListener("input", function (e) {
@@ -145,25 +149,25 @@
 
     bindForm("cliente-cadastro", async function () {
       var tipo = tipoSelecionado();
-      var ehPartido = tipo === "orgao";
+      var ehDiretorio = DIRETORIOS.indexOf(tipo) !== -1;
       var ehCandidato = tipo === "candidato";
       var payload = {
         nome: val("cad-nome"),
         documento: val("cad-documento"),
-        partido_id: (ehPartido || ehCandidato) ? val("cad-partido") : null,
-        nivel: ehPartido ? val("cad-nivel") : null,
-        uf: ehPartido ? val("cad-uf") : null,
-        municipio: ehPartido ? val("cad-municipio") : null,
-        parent_id: ehPartido ? val("cad-pai") : null,
-        eh_candidato: ehCandidato,
+        tipo_cliente: tipo,
+        partido_id: (ehDiretorio || ehCandidato) ? val("cad-partido") : null,
+        uf: (tipo === "diretorio_estadual" || tipo === "diretorio_municipal") ? val("cad-uf") : null,
+        municipio: tipo === "diretorio_municipal" ? val("cad-municipio") : null,
+        parent_id: (tipo === "diretorio_estadual" || tipo === "diretorio_municipal") ? val("cad-pai") : null,
         cargo_disputado: ehCandidato ? val("cad-cargo") : null,
         ano_eleicao: ehCandidato && val("cad-ano-eleicao") ? Number(val("cad-ano-eleicao")) : null,
       };
       if (!payload.nome) throw new Error("preencha o nome do cliente");
+      if (!payload.tipo_cliente) throw new Error("selecione o tipo de cliente");
       var { error } = await bfSupabase.from("clientes").insert(payload);
       if (error) throw error;
       await carregarClientes();
-      document.querySelector('input[name="cad-tipo"][value="nenhum"]').checked = true;
+      document.getElementById("cad-tipo-cliente").value = "";
       atualizarCamposCliente();
     });
   }

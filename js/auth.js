@@ -19,7 +19,7 @@ async function bfRequireSession(loginPath) {
 async function bfGetPerfil(userId) {
   const { data, error } = await bfSupabase
     .from("perfis")
-    .select("id, nome, role, escopo, cliente_id, clientes(nome, nivel, uf, municipio, path)")
+    .select("id, nome, role, escopo, cliente_id, clientes(nome, tipo_cliente, uf, municipio, path)")
     .eq("id", userId)
     .single();
   if (error) {

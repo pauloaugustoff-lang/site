@@ -21,7 +21,8 @@
     "cnpj": "documento",
     "nome do partido": "nomePartido",
     "partido": "nomePartido",
-    "nivel": "nivel",
+    "tipo de cliente": "tipoCliente",
+    "nivel": "tipoCliente", // alias antigo (modelo pré-v3)
     "uf": "uf",
     "municipio": "municipio",
     "cliente superior": "clienteSuperior",
@@ -38,14 +39,25 @@
     "status": "status",
     "resultado": "resultado",
     "data da decisao": "dataDecisao",
-    "tipo de obrigacao": "tipoObrigacao",
-    "descricao": "descricaoObrigacao",
-    "descricao texto livre": "descricaoObrigacao",
+    "tipo de determinacao": "tipoDeterminacao",
+    "tipo de obrigacao": "tipoDeterminacao", // alias antigo (modelo pré-v3)
+    "descricao": "descricaoDeterminacao",
+    "descricao texto livre": "descricaoDeterminacao",
     "valor": "valor",
     "exercicio de cumprimento": "exercicioCumprimento",
   };
 
-  var NIVEL_MAP = { nacional: "nacional", estadual: "estadual", municipal: "municipal" };
+  var TIPO_CLIENTE_MAP = {
+    "diretorio nacional": "diretorio_nacional",
+    nacional: "diretorio_nacional",
+    "diretorio estadual": "diretorio_estadual",
+    estadual: "diretorio_estadual",
+    "diretorio municipal": "diretorio_municipal",
+    municipal: "diretorio_municipal",
+    candidato: "candidato",
+    "pessoa fisica": "pessoa_fisica",
+    "pessoa juridica": "pessoa_juridica",
+  };
 
   var CATEGORIA_MAP = {
     "prestacao de contas": "prestacao_contas",
@@ -72,7 +84,7 @@
     "nao prestadas": "nao_prestadas",
   };
 
-  var TIPO_OBRIGACAO_MAP = {
+  var TIPO_DETERMINACAO_MAP = {
     "recolhimento a uniao": "recolhimento_uniao",
     "recolhimento uniao": "recolhimento_uniao",
     "aplicacao em politica da mulher": "aplicacao_politica_mulher",
@@ -88,6 +100,12 @@
     if (!valorBruto) return fallback;
     var chave = normalizar(valorBruto);
     return mapa[chave] !== undefined ? mapa[chave] : fallback;
+  }
+
+  function inferirTipoClientePorDocumento(documento) {
+    if (!documento) return "pessoa_fisica";
+    var digitos = String(documento).replace(/\D/g, "");
+    return digitos.length === 14 ? "pessoa_juridica" : "pessoa_fisica";
   }
 
   function parseValor(v) {
@@ -177,7 +195,7 @@
         nomeCliente: texto(pega(linha, "nomeCliente")),
         documento: texto(pega(linha, "documento")),
         nomePartido: texto(pega(linha, "nomePartido")),
-        nivel: texto(pega(linha, "nivel")),
+        tipoCliente: texto(pega(linha, "tipoCliente")),
         uf: texto(pega(linha, "uf")),
         municipio: texto(pega(linha, "municipio")),
         clienteSuperior: texto(pega(linha, "clienteSuperior")),
@@ -190,8 +208,8 @@
         status: texto(pega(linha, "status")),
         resultado: texto(pega(linha, "resultado")),
         dataDecisao: parseData(pega(linha, "dataDecisao")),
-        tipoObrigacao: texto(pega(linha, "tipoObrigacao")),
-        descricaoObrigacao: texto(pega(linha, "descricaoObrigacao")),
+        tipoDeterminacao: texto(pega(linha, "tipoDeterminacao")),
+        descricaoDeterminacao: texto(pega(linha, "descricaoDeterminacao")),
         valor: parseValor(pega(linha, "valor")),
         exercicioCumprimento: parseInteiro(pega(linha, "exercicioCumprimento")),
       });
@@ -215,7 +233,7 @@
         "<td>" + (l.nomePartido || "—") + "</td>" +
         "<td>" + (l.categoria || "—") + "</td>" +
         "<td>" + (l.ano || "—") + "</td>" +
-        "<td>" + (l.tipoObrigacao || "—") + "</td>" +
+        "<td>" + (l.tipoDeterminacao || "—") + "</td>" +
       "</tr>";
     }).join("");
 
@@ -275,18 +293,20 @@
       }
     }
 
-    var nivel = mapear(l.nivel, NIVEL_MAP, null);
-    if (l.nivel && !nivel) avisos.push("Linha " + l.numeroLinha + ": nível '" + l.nivel + "' não reconhecido, deixado em branco.");
+    var tipoCliente = mapear(l.tipoCliente, TIPO_CLIENTE_MAP, null);
+    if (l.tipoCliente && !tipoCliente) {
+      avisos.push("Linha " + l.numeroLinha + ": tipo de cliente '" + l.tipoCliente + "' não reconhecido — inferido automaticamente pelo documento.");
+    }
+    if (!tipoCliente) tipoCliente = inferirTipoClientePorDocumento(l.documento);
 
     var payload = {
       nome: l.nomeCliente,
       documento: l.documento,
       partido_id: partidoId,
-      nivel: nivel,
+      tipo_cliente: tipoCliente,
       uf: l.uf,
       municipio: l.municipio,
       parent_id: parentId,
-      eh_candidato: false,
     };
     var criado = await bfSupabase.from("clientes").insert(payload).select("id").single();
     if (criado.error) {
@@ -300,11 +320,11 @@
   }
 
   // Só retorna a mensagem: a chamadora decide se a linha inteira é rejeitada
-  // ou só o campo. Listas fechadas — nada de texto livre nestes 4 campos.
+  // ou só o campo. Listas fechadas — nada de texto livre nestes campos.
   var OPCOES_CATEGORIA = "Prestação de Contas, AIJE, Representação, Registro de Candidatura, DRAP, Outro";
   var OPCOES_STATUS = "Em andamento, Aguardando diligência, Concluído";
   var OPCOES_RESULTADO_CONTAS = "Aprovadas, Aprovadas com ressalvas, Desaprovadas, Não prestadas";
-  var OPCOES_TIPO_OBRIGACAO = "Recolhimento à União, Aplicação em política da mulher, Aplicação em ações afirmativas / minorias, Multa, Outra";
+  var OPCOES_TIPO_DETERMINACAO = "Recolhimento à União, Aplicação em política da mulher, Aplicação em ações afirmativas / minorias, Multa, Outra";
 
   async function resolverProcesso(l, clienteId, categoria, status, resultado, caches, avisos) {
     var chave = clienteId + "|" + (l.numeroProcesso ? normalizar(l.numeroProcesso) : (normalizar(categoria) + "|" + (l.ano || "")));
@@ -340,21 +360,21 @@
     return criado.data.id;
   }
 
-  async function resolverObrigacao(l, processoId, tipo, avisos, caches) {
+  async function resolverDeterminacao(l, processoId, tipo, avisos, caches) {
     var payload = {
       processo_id: processoId,
       tipo: tipo,
-      descricao: l.descricaoObrigacao || l.tipoObrigacao,
+      descricao: l.descricaoDeterminacao || l.tipoDeterminacao,
       valor: l.valor,
       exercicio_cumprimento: l.exercicioCumprimento,
       status: "pendente",
     };
-    var { error } = await bfSupabase.from("obrigacoes").insert(payload);
+    var { error } = await bfSupabase.from("determinacoes").insert(payload);
     if (error) {
-      avisos.push("Linha " + l.numeroLinha + ": erro ao criar obrigação — " + error.message);
+      avisos.push("Linha " + l.numeroLinha + ": erro ao criar determinação — " + error.message);
       return;
     }
-    caches.obrigacoesCriadas++;
+    caches.determinacoesCriadas++;
   }
 
   async function importarTudo(linhas) {
@@ -365,7 +385,7 @@
       partidosCriados: 0,
       clientesCriados: 0,
       processosCriados: 0,
-      obrigacoesCriadas: 0,
+      determinacoesCriadas: 0,
     };
     var avisos = [];
 
@@ -420,13 +440,13 @@
       var processoId = await resolverProcesso(l, clienteId, categoria, status, resultado, caches, avisos);
       if (!processoId) continue;
 
-      // --- Tipo de Obrigação (opcional, lista fechada) ---
-      if (l.tipoObrigacao) {
-        var tipoObrigacao = mapear(l.tipoObrigacao, TIPO_OBRIGACAO_MAP, null);
-        if (!tipoObrigacao) {
-          avisos.push("Linha " + l.numeroLinha + ": tipo de obrigação '" + l.tipoObrigacao + "' inválido — obrigação não importada (processo foi importado normalmente). Valores aceitos: " + OPCOES_TIPO_OBRIGACAO + ".");
+      // --- Tipo de Determinação (opcional, lista fechada) ---
+      if (l.tipoDeterminacao) {
+        var tipoDeterminacao = mapear(l.tipoDeterminacao, TIPO_DETERMINACAO_MAP, null);
+        if (!tipoDeterminacao) {
+          avisos.push("Linha " + l.numeroLinha + ": tipo de determinação '" + l.tipoDeterminacao + "' inválido — determinação não importada (processo foi importado normalmente). Valores aceitos: " + OPCOES_TIPO_DETERMINACAO + ".");
         } else {
-          await resolverObrigacao(l, processoId, tipoObrigacao, avisos, caches);
+          await resolverDeterminacao(l, processoId, tipoDeterminacao, avisos, caches);
         }
       }
     }
@@ -435,7 +455,7 @@
       partidosCriados: caches.partidosCriados,
       clientesCriados: caches.clientesCriados,
       processosCriados: caches.processosCriados,
-      obrigacoesCriadas: caches.obrigacoesCriadas,
+      determinacoesCriadas: caches.determinacoesCriadas,
       avisos: avisos,
     };
   }
@@ -444,7 +464,7 @@
     document.querySelector("[data-resultado-resumo]").innerHTML =
       '<div class="portal-stat"><span class="num">' + resultado.clientesCriados + '</span><span class="label">Clientes criados</span></div>' +
       '<div class="portal-stat"><span class="num">' + resultado.processosCriados + '</span><span class="label">Processos criados</span></div>' +
-      '<div class="portal-stat"><span class="num">' + resultado.obrigacoesCriadas + '</span><span class="label">Obrigações criadas</span></div>' +
+      '<div class="portal-stat"><span class="num">' + resultado.determinacoesCriadas + '</span><span class="label">Determinações criadas</span></div>' +
       '<div class="portal-stat"><span class="num">' + resultado.partidosCriados + '</span><span class="label">Partidos criados</span></div>';
 
     var elAvisos = document.querySelector("[data-resultado-avisos]");
@@ -467,14 +487,14 @@
 
   function baixarModelo() {
     var cabecalho = [
-      "Nome do Cliente", "CPF/CNPJ", "Nome do Partido", "Nível", "UF", "Município", "Cliente Superior",
+      "Nome do Cliente", "CPF/CNPJ", "Nome do Partido", "Tipo de Cliente", "UF", "Município", "Cliente Superior",
       "Processo (nº)", "Categoria", "Subcategoria", "Título", "Ano", "Órgão Julgador", "Status", "Resultado",
-      "Data da decisão", "Tipo de Obrigação", "Descrição (Texto livre)", "Valor", "Exercício de cumprimento",
+      "Data da decisão", "Tipo de Determinação", "Descrição (Texto livre)", "Valor", "Exercício de cumprimento",
     ];
     var linhas = [
       cabecalho,
       [
-        "Diretório Nacional", "", "Partido Exemplo", "Nacional", "", "", "",
+        "Diretório Nacional", "", "Partido Exemplo", "Diretório Nacional", "", "", "",
         "0000000-00.2020.6.00.0000", "Prestação de Contas", "Anual", "Prestação de contas 2020", 2020, "TSE", "Concluído", "Não prestadas",
         new Date(2021, 5, 15), "Aplicação em política da mulher", "Aplicar em políticas de fomento à participação feminina", 2000000, 2021,
       ],
@@ -484,7 +504,7 @@
         "", "Recolhimento à União", "Recolher à conta única do Tesouro Nacional", 10000, 2021,
       ],
       [
-        "Diretório Estadual da Bahia", "", "Partido Exemplo", "Estadual", "BA", "", "Diretório Nacional",
+        "Diretório Estadual da Bahia", "", "Partido Exemplo", "Diretório Estadual", "BA", "", "Diretório Nacional",
         "", "AIJE", "", "Investigação judicial eleitoral", 2022, "TRE-BA", "Em andamento", "",
         "", "", "", "", "",
       ],
@@ -499,9 +519,12 @@
       ["Categoria", "Registro de Candidatura"],
       ["Categoria", "DRAP"],
       ["Categoria", "Outro"],
-      ["Nível", "Nacional"],
-      ["Nível", "Estadual"],
-      ["Nível", "Municipal"],
+      ["Tipo de Cliente", "Diretório Nacional"],
+      ["Tipo de Cliente", "Diretório Estadual"],
+      ["Tipo de Cliente", "Diretório Municipal"],
+      ["Tipo de Cliente", "Candidato"],
+      ["Tipo de Cliente", "Pessoa Física"],
+      ["Tipo de Cliente", "Pessoa Jurídica"],
       ["Status", "Em andamento"],
       ["Status", "Aguardando diligência"],
       ["Status", "Concluído"],
@@ -509,11 +532,11 @@
       ["Resultado (só p/ Prestação de Contas)", "Aprovadas com ressalvas"],
       ["Resultado (só p/ Prestação de Contas)", "Desaprovadas"],
       ["Resultado (só p/ Prestação de Contas)", "Não prestadas"],
-      ["Tipo de Obrigação", "Recolhimento à União"],
-      ["Tipo de Obrigação", "Aplicação em política da mulher"],
-      ["Tipo de Obrigação", "Aplicação em ações afirmativas / minorias"],
-      ["Tipo de Obrigação", "Multa"],
-      ["Tipo de Obrigação", "Outra"],
+      ["Tipo de Determinação", "Recolhimento à União"],
+      ["Tipo de Determinação", "Aplicação em política da mulher"],
+      ["Tipo de Determinação", "Aplicação em ações afirmativas / minorias"],
+      ["Tipo de Determinação", "Multa"],
+      ["Tipo de Determinação", "Outra"],
     ];
     var sheetListas = XLSX.utils.aoa_to_sheet(listas);
 

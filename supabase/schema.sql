@@ -1,16 +1,17 @@
 -- =============================================================
--- Bessoni & Fortes — Portal do Cliente (v2)
--- Schema: clientes, processos (genérico), obrigações, perfis com escopo
+-- Bessoni & Fortes — Sistema de Gestão Jurídica Eleitoral (v3)
+-- Schema: clientes (hierarquia + tipo), processos, determinações,
+-- perfis + perfil_escopos (permissão escalável), auditoria
 --
--- Como usar: cole este arquivo inteiro no SQL Editor do Supabase
--- (Project → SQL Editor → New query) e clique em "Run".
---
--- ATENÇÃO: este script começa apagando as tabelas da versão anterior
--- (só havia dados de teste). Depois de rodar, é preciso recriar a linha
--- em `perfis` do seu usuário de escritório (o INSERT que você já rodou
--- antes é apagado pelo cascade).
+-- Este arquivo é a referência do schema "do zero" (ex: um banco novo).
+-- Se você já tem um projeto Supabase rodando com dados reais, NÃO rode
+-- este arquivo — rode supabase/migration-v3.sql, que só faz ALTER/CREATE
+-- aditivos em cima do que já existe, sem apagar nada.
 -- =============================================================
 
+drop table if exists auditoria cascade;
+drop table if exists perfil_escopos cascade;
+drop table if exists determinacoes cascade;
 drop table if exists obrigacoes cascade;
 drop table if exists julgamentos cascade;
 drop table if exists prestacoes_contas cascade;
@@ -23,8 +24,10 @@ drop function if exists is_escritorio();
 drop function if exists meu_org_path();
 drop function if exists meu_cliente_path();
 drop function if exists meu_escopo();
+drop function if exists tenho_acesso(uuid, text);
 drop function if exists set_orgao_path();
 drop function if exists set_cliente_path();
+drop function if exists fn_auditoria();
 
 create extension if not exists pgcrypto;
 
@@ -43,21 +46,21 @@ create table partidos (
 -- -------------------------------------------------------------
 create table clientes (
   id uuid primary key default gen_random_uuid(),
-  -- opcional: nem todo cliente é um órgão partidário (pode ser candidato,
-  -- comitê financeiro, coligação etc.)
+  -- opcional: nem todo cliente é um órgão partidário
   partido_id uuid references partidos(id),
   nome text not null,
   documento text, -- CPF ou CNPJ, opcional
-  nivel text check (nivel in ('nacional', 'estadual', 'municipal')),
+  tipo_cliente text not null check (
+    tipo_cliente in (
+      'diretorio_nacional', 'diretorio_estadual', 'diretorio_municipal',
+      'candidato', 'pessoa_fisica', 'pessoa_juridica'
+    )
+  ),
   uf text,
   municipio text,
   parent_id uuid references clientes(id),
-  -- um cliente é OU órgão partidário OU candidato, nunca os dois (reforçado
-  -- também na tela via radio button, mas o check abaixo garante no banco)
-  eh_candidato boolean not null default false,
   cargo_disputado text,
   ano_eleicao int,
-  constraint chk_nao_orgao_e_candidato check (not (nivel is not null and eh_candidato)),
   -- caminho materializado dos ancestrais (ex: "id_nacional.id_estadual.id_municipal")
   -- mantido automaticamente pelo trigger abaixo — usado para consultas
   -- rápidas de "este cliente e tudo abaixo dele" sem precisar de CTE recursiva
@@ -68,6 +71,7 @@ create table clientes (
 create index idx_clientes_path on clientes using btree (path text_pattern_ops);
 create index idx_clientes_parent on clientes (parent_id);
 create index idx_clientes_partido on clientes (partido_id);
+create index idx_clientes_tipo on clientes (tipo_cliente);
 
 create or replace function set_cliente_path() returns trigger as $$
 declare
@@ -122,6 +126,12 @@ create table processos (
   resultado text,
   data_decisao date,
   data_protocolo date,
+  -- fluxo de prestação de contas (relevantes quando categoria = prestacao_contas,
+  -- mas ficam disponíveis pra qualquer processo)
+  houve_recurso boolean,
+  transito_julgado boolean,
+  data_transito date,
+  responsavel text, -- advogado responsável (texto livre por enquanto)
   observacoes text,
   created_at timestamptz not null default now()
 );
@@ -130,9 +140,10 @@ create index idx_processos_cliente on processos (cliente_id, ano);
 create index idx_processos_categoria on processos (categoria);
 
 -- -------------------------------------------------------------
--- 4. OBRIGAÇÕES (o que precisa ser cumprido em razão de um processo)
+-- 4. DETERMINAÇÕES (o que precisa ser cumprido em razão de um processo —
+--    recolhimentos, aplicações mínimas, diligências, documentos etc.)
 -- -------------------------------------------------------------
-create table obrigacoes (
+create table determinacoes (
   id uuid primary key default gen_random_uuid(),
   processo_id uuid not null references processos(id),
   tipo text not null check (
@@ -144,27 +155,46 @@ create table obrigacoes (
   prazo date,
   status text not null default 'pendente' check (status in ('pendente', 'cumprida')),
   data_cumprimento date,
+  responsavel text,
+  data_transito_julgado date,
   observacoes text,
   created_at timestamptz not null default now()
 );
 
-create index idx_obrigacoes_processo on obrigacoes (processo_id);
-create index idx_obrigacoes_status on obrigacoes (status);
+create index idx_determinacoes_processo on determinacoes (processo_id);
+create index idx_determinacoes_status on determinacoes (status);
 
 -- -------------------------------------------------------------
--- 5. PERFIS (liga cada login a um cliente / papel / escopo de acesso)
+-- 5. PERFIS (liga cada login a um cliente / papel / escopo primário)
 -- -------------------------------------------------------------
 create table perfis (
   id uuid primary key references auth.users(id) on delete cascade,
   cliente_id uuid references clientes(id), -- null se for da equipe do escritório
   nome text not null,
   role text not null check (role in ('cliente', 'escritorio')),
-  -- um mesmo cliente pode ter vários logins (várias linhas de perfis com
-  -- o mesmo cliente_id); cada um pode ver todos os processos do cliente
-  -- ou só os de prestação de contas
+  -- escopo primário: o que aquele login vê a partir do cliente_id acima
   escopo text not null default 'total' check (escopo in ('total', 'prestacao_contas')),
   created_at timestamptz not null default now()
 );
+
+-- -------------------------------------------------------------
+-- 6. PERFIL_ESCOPOS (escopos adicionais por login — permite um mesmo
+--    login enxergar mais de um cliente/hierarquia, com nível de acesso
+--    próprio por escopo. Também usado para restringir um login do
+--    escritório a só parte da base, quando necessário.)
+-- -------------------------------------------------------------
+create table perfil_escopos (
+  id uuid primary key default gen_random_uuid(),
+  perfil_id uuid not null references perfis(id) on delete cascade,
+  cliente_id uuid not null references clientes(id),
+  nivel_acesso text not null default 'total' check (
+    nivel_acesso in ('total', 'prestacao_contas', 'leitura')
+  ),
+  created_at timestamptz not null default now()
+);
+
+create index idx_perfil_escopos_perfil on perfil_escopos (perfil_id);
+create index idx_perfil_escopos_cliente on perfil_escopos (cliente_id);
 
 -- =============================================================
 -- FUNÇÕES AUXILIARES DE ACESSO (security definer: leem sem
@@ -177,17 +207,37 @@ language sql stable security definer set search_path = public as $$
   );
 $$;
 
-create or replace function meu_cliente_path() returns text
+-- Verifica se o usuário logado tem acesso a um cliente-alvo (direto ou por
+-- estar acima dele na hierarquia), considerando os 3 tipos de escopo:
+-- 1) escritório sem nenhum perfil_escopos = irrestrito (vê tudo)
+-- 2) escopo primário (perfis.cliente_id + perfis.escopo)
+-- 3) escopos adicionais (perfil_escopos), inclusive escritório restrito
+create or replace function tenho_acesso(alvo_cliente_id uuid, categoria_processo text default null)
+returns boolean
 language sql stable security definer set search_path = public as $$
-  select c.path
-  from perfis p
-  join clientes c on c.id = p.cliente_id
-  where p.id = auth.uid();
-$$;
-
-create or replace function meu_escopo() returns text
-language sql stable security definer set search_path = public as $$
-  select escopo from perfis where id = auth.uid();
+  select
+    (
+      exists (select 1 from perfis where id = auth.uid() and role = 'escritorio')
+      and not exists (select 1 from perfil_escopos where perfil_id = auth.uid())
+    )
+    or exists (
+      select 1
+      from perfis p
+      join clientes meu on meu.id = p.cliente_id
+      join clientes alvo on alvo.id = alvo_cliente_id
+      where p.id = auth.uid()
+        and alvo.path like (meu.path || '%')
+        and (p.escopo = 'total' or categoria_processo is null or categoria_processo = 'prestacao_contas')
+    )
+    or exists (
+      select 1
+      from perfil_escopos pe
+      join clientes meu on meu.id = pe.cliente_id
+      join clientes alvo on alvo.id = alvo_cliente_id
+      where pe.perfil_id = auth.uid()
+        and alvo.path like (meu.path || '%')
+        and (pe.nivel_acesso = 'total' or categoria_processo is null or categoria_processo = 'prestacao_contas')
+    );
 $$;
 
 -- =============================================================
@@ -196,14 +246,15 @@ $$;
 alter table partidos enable row level security;
 alter table clientes enable row level security;
 alter table processos enable row level security;
-alter table obrigacoes enable row level security;
+alter table determinacoes enable row level security;
 alter table perfis enable row level security;
+alter table perfil_escopos enable row level security;
 
 -- só usuários autenticados têm qualquer acesso (defesa extra, além da RLS)
 revoke all on all tables in schema public from anon;
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on
-  partidos, clientes, processos, obrigacoes, perfis
+  partidos, clientes, processos, determinacoes, perfis, perfil_escopos
   to authenticated;
 
 -- --- partidos: qualquer logado lê; só escritório escreve ---
@@ -212,39 +263,28 @@ create policy "partidos_select" on partidos for select
 create policy "partidos_write" on partidos for all
   using (is_escritorio()) with check (is_escritorio());
 
--- --- clientes: cliente vê a si + abaixo; escritório vê tudo ---
+-- --- clientes: respeita hierarquia + escopos (via tenho_acesso) ---
 create policy "clientes_select" on clientes for select
-  using (is_escritorio() or path like (meu_cliente_path() || '%'));
+  using (tenho_acesso(id));
 create policy "clientes_write" on clientes for all
   using (is_escritorio()) with check (is_escritorio());
 
--- --- processos: respeita hierarquia E escopo de acesso do login ---
+-- --- processos: respeita hierarquia + escopo (com filtro por categoria) ---
 create policy "processos_select" on processos for select
-  using (
-    is_escritorio() or (
-      exists (
-        select 1 from clientes c
-        where c.id = processos.cliente_id
-          and c.path like (meu_cliente_path() || '%')
-      )
-      and (meu_escopo() = 'total' or processos.categoria = 'prestacao_contas')
-    )
-  );
+  using (tenho_acesso(cliente_id, categoria));
 create policy "processos_write" on processos for all
   using (is_escritorio()) with check (is_escritorio());
 
--- --- obrigacoes: herda a visibilidade do processo ---
-create policy "obrigacoes_select" on obrigacoes for select
+-- --- determinacoes: herda a visibilidade do processo ---
+create policy "determinacoes_select" on determinacoes for select
   using (
-    is_escritorio() or exists (
+    exists (
       select 1 from processos pr
-      join clientes c on c.id = pr.cliente_id
-      where pr.id = obrigacoes.processo_id
-        and c.path like (meu_cliente_path() || '%')
-        and (meu_escopo() = 'total' or pr.categoria = 'prestacao_contas')
+      where pr.id = determinacoes.processo_id
+        and tenho_acesso(pr.cliente_id, pr.categoria)
     )
   );
-create policy "obrigacoes_write" on obrigacoes for all
+create policy "determinacoes_write" on determinacoes for all
   using (is_escritorio()) with check (is_escritorio());
 
 -- --- perfis: cada um vê o próprio; escritório vê/gerencia todos ---
@@ -253,6 +293,59 @@ create policy "perfis_select" on perfis for select
 create policy "perfis_write" on perfis for all
   using (is_escritorio()) with check (is_escritorio());
 
+-- --- perfil_escopos: cada um vê os próprios escopos extras; só escritório escreve ---
+create policy "perfil_escopos_select" on perfil_escopos for select
+  using (perfil_id = auth.uid() or is_escritorio());
+create policy "perfil_escopos_write" on perfil_escopos for all
+  using (is_escritorio()) with check (is_escritorio());
+
+-- =============================================================
+-- 7. AUDITORIA (histórico de alterações — quem, quando, o que mudou)
+-- =============================================================
+create table auditoria (
+  id uuid primary key default gen_random_uuid(),
+  tabela text not null,
+  registro_id uuid not null,
+  perfil_id uuid references perfis(id),
+  campo text not null,
+  valor_anterior text,
+  valor_novo text,
+  criado_em timestamptz not null default now()
+);
+
+create index idx_auditoria_registro on auditoria (tabela, registro_id);
+
+alter table auditoria enable row level security;
+grant select on auditoria to authenticated;
+
+create policy "auditoria_select" on auditoria for select
+  using (is_escritorio());
+
+create or replace function fn_auditoria() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare
+  campo text;
+  antes jsonb := to_jsonb(OLD);
+  depois jsonb := to_jsonb(NEW);
+begin
+  for campo in select jsonb_object_keys(depois) loop
+    if campo in ('created_at', 'path') then continue; end if;
+    if antes -> campo is distinct from depois -> campo then
+      insert into auditoria (tabela, registro_id, perfil_id, campo, valor_anterior, valor_novo)
+      values (TG_TABLE_NAME, NEW.id, auth.uid(), campo, antes ->> campo, depois ->> campo);
+    end if;
+  end loop;
+  return NEW;
+end;
+$$;
+
+create trigger trg_auditoria_clientes after update on clientes
+for each row execute function fn_auditoria();
+create trigger trg_auditoria_processos after update on processos
+for each row execute function fn_auditoria();
+create trigger trg_auditoria_determinacoes after update on determinacoes
+for each row execute function fn_auditoria();
+
 -- =============================================================
 -- PRÓXIMO PASSO OBRIGATÓRIO: recrie o vínculo do seu usuário de
 -- escritório (troque o UID pelo do seu usuário, o mesmo de antes):
@@ -260,23 +353,3 @@ create policy "perfis_write" on perfis for all
 -- insert into perfis (id, nome, role)
 -- values ('SEU-UID-AQUI', 'Paulo Fortes', 'escritorio');
 -- =============================================================
-
--- =============================================================
--- EXEMPLO DE USO (opcional — descomente e rode se quiser semear
--- dados de teste com o próprio exemplo que motivou o sistema)
--- =============================================================
--- insert into partidos (id, sigla, nome) values
---   ('00000000-0000-0000-0000-000000000001', 'XX', 'Partido Exemplo');
---
--- insert into clientes (id, partido_id, nome, nivel) values
---   ('00000000-0000-0000-0000-000000000010', '00000000-0000-0000-0000-000000000001', 'Diretório Nacional', 'nacional');
---
--- insert into clientes (id, partido_id, nome, nivel, uf, parent_id) values
---   ('00000000-0000-0000-0000-000000000011', '00000000-0000-0000-0000-000000000001', 'Diretório Estadual da Bahia', 'estadual', 'BA', '00000000-0000-0000-0000-000000000010');
---
--- insert into processos (id, cliente_id, categoria, subcategoria, ano, status, resultado, data_decisao, orgao_julgador) values
---   ('00000000-0000-0000-0000-000000000020', '00000000-0000-0000-0000-000000000010', 'prestacao_contas', 'anual', 2020, 'concluido', 'nao_prestadas', '2021-06-15', 'TSE');
---
--- insert into obrigacoes (processo_id, tipo, descricao, valor, exercicio_cumprimento, status) values
---   ('00000000-0000-0000-0000-000000000020', 'aplicacao_politica_mulher', 'Aplicar em políticas de fomento à participação feminina', 2000000.00, 2021, 'pendente'),
---   ('00000000-0000-0000-0000-000000000020', 'recolhimento_uniao', 'Recolher à conta única do Tesouro Nacional', 10000.00, 2021, 'pendente');

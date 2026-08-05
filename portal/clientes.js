@@ -2,7 +2,14 @@
   "use strict";
 
   var LABELS = {
-    nivel: { nacional: "Nacional", estadual: "Estadual", municipal: "Municipal" },
+    tipo_cliente: {
+      diretorio_nacional: "Diretório Nacional",
+      diretorio_estadual: "Diretório Estadual",
+      diretorio_municipal: "Diretório Municipal",
+      candidato: "Candidato",
+      pessoa_fisica: "Pessoa física",
+      pessoa_juridica: "Pessoa jurídica",
+    },
   };
 
   var clientes = [];
@@ -11,15 +18,12 @@
     return path ? path.split(".").length - 1 : 0;
   }
   function tipoChave(c) {
-    if (c.nivel) return "orgao";
-    if (c.eh_candidato) return "candidato";
-    return "nenhum";
+    return c.tipo_cliente;
   }
   function tipoClienteLabel(c) {
-    var partes = [];
-    if (c.nivel) partes.push("Órgão " + (LABELS.nivel[c.nivel] || c.nivel));
-    if (c.eh_candidato) partes.push("Candidato" + (c.cargo_disputado ? " a " + c.cargo_disputado : ""));
-    return partes.length ? partes.join(" · ") : "Sem categoria";
+    var base = LABELS.tipo_cliente[c.tipo_cliente] || c.tipo_cliente;
+    if (c.tipo_cliente === "candidato" && c.cargo_disputado) return base + " a " + c.cargo_disputado;
+    return base;
   }
 
   function renderTabela(lista) {

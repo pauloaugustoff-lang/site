@@ -2,7 +2,14 @@
   "use strict";
 
   var LABELS = {
-    nivel: { nacional: "Nacional", estadual: "Estadual", municipal: "Municipal" },
+    tipo_cliente: {
+      diretorio_nacional: "Diretório Nacional",
+      diretorio_estadual: "Diretório Estadual",
+      diretorio_municipal: "Diretório Municipal",
+      candidato: "Candidato",
+      pessoa_fisica: "Pessoa física",
+      pessoa_juridica: "Pessoa jurídica",
+    },
     categoria: {
       prestacao_contas: "Prestação de contas",
       aije: "AIJE",
@@ -60,6 +67,13 @@
     var isContas = categoria === "prestacao_contas";
     document.querySelector("[data-resultado-select-wrap]").hidden = !isContas;
     document.querySelector("[data-resultado-texto-wrap]").hidden = isContas;
+    document.querySelectorAll("[data-campo-contas]").forEach(function (el) {
+      el.hidden = !isContas;
+    });
+  }
+  function boolVal(id) {
+    var v = document.getElementById(id).value;
+    return v === "" ? null : v === "true";
   }
 
   async function carregarCliente() {
@@ -75,8 +89,12 @@
     document.querySelector("[data-cliente-nome]").textContent = data.nome;
 
     var partes = [];
-    if (data.nivel) partes.push("Órgão " + (LABELS.nivel[data.nivel] || data.nivel));
-    if (data.eh_candidato) partes.push("Candidato" + (data.cargo_disputado ? " a " + data.cargo_disputado : "") + (data.ano_eleicao ? " · " + data.ano_eleicao : ""));
+    var tipoLabel = LABELS.tipo_cliente[data.tipo_cliente] || data.tipo_cliente;
+    if (data.tipo_cliente === "candidato") {
+      partes.push(tipoLabel + (data.cargo_disputado ? " a " + data.cargo_disputado : "") + (data.ano_eleicao ? " · " + data.ano_eleicao : ""));
+    } else {
+      partes.push(tipoLabel);
+    }
     if (data.partidos) partes.push(data.partidos.sigla ? data.partidos.sigla + " — " + data.partidos.nome : data.partidos.nome);
     if ([data.uf, data.municipio].filter(Boolean).length) partes.push([data.uf, data.municipio].filter(Boolean).join(" / "));
     document.querySelector("[data-cliente-info]").textContent = partes.length ? partes.join(" · ") : "Cliente sem categoria definida";
@@ -166,6 +184,10 @@
         resultado: resultado,
         data_decisao: val("proc-data-decisao"),
         data_protocolo: val("proc-data-protocolo"),
+        responsavel: val("proc-responsavel"),
+        houve_recurso: categoria === "prestacao_contas" ? boolVal("proc-houve-recurso") : null,
+        transito_julgado: categoria === "prestacao_contas" ? boolVal("proc-transito-julgado") : null,
+        data_transito: categoria === "prestacao_contas" ? val("proc-data-transito") : null,
       };
       if (!payload.categoria) throw new Error("selecione a categoria");
       var { error } = await bfSupabase.from("processos").insert(payload);

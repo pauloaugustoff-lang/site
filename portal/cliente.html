@@ -117,6 +117,30 @@
               <label for="proc-data-protocolo">Data de protocolo</label>
               <input type="date" id="proc-data-protocolo">
             </div>
+            <div class="field">
+              <label for="proc-responsavel">Advogado responsável</label>
+              <input type="text" id="proc-responsavel" placeholder="Opcional">
+            </div>
+            <div class="field" data-campo-contas hidden>
+              <label for="proc-houve-recurso">Houve recurso?</label>
+              <select id="proc-houve-recurso">
+                <option value="">— não informado —</option>
+                <option value="true">Sim</option>
+                <option value="false">Não</option>
+              </select>
+            </div>
+            <div class="field" data-campo-contas hidden>
+              <label for="proc-transito-julgado">Trânsito em julgado?</label>
+              <select id="proc-transito-julgado">
+                <option value="">— não informado —</option>
+                <option value="true">Sim</option>
+                <option value="false">Não</option>
+              </select>
+            </div>
+            <div class="field" data-campo-contas hidden>
+              <label for="proc-data-transito">Data do trânsito em julgado</label>
+              <input type="date" id="proc-data-transito">
+            </div>
           </form>
           <div class="portal-form-actions">
             <button class="btn btn-ghost-light" type="submit" form="form-processo">Salvar processo</button>

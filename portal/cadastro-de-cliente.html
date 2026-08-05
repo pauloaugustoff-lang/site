@@ -36,13 +36,13 @@
 
       <div class="portal-head">
         <h1>Cadastro de cliente</h1>
-        <p>Cadastro principal de clientes e partidos. Processos, obrigações e acessos de cada cliente ficam dentro da "pasta" dele — depois de salvar, veja a lista em <a href="clientes.html">Cliente</a> no menu. Já tem uma planilha pronta? <a href="importar.html">Importar planilha →</a></p>
+        <p>Cadastro principal de clientes e partidos. Processos, determinações e acessos de cada cliente ficam dentro da "pasta" dele — depois de salvar, veja a lista em <a href="clientes.html">Cliente</a> no menu. Já tem uma planilha pronta? <a href="importar.html">Importar planilha →</a></p>
       </div>
 
       <!-- CLIENTES -->
       <section class="portal-section">
         <h2>1 · Novo cliente</h2>
-        <p class="portal-section-desc">Um cliente pode ser pessoa física, empresa, órgão partidário ou candidato — escolha no máximo uma das opções abaixo.</p>
+        <p class="portal-section-desc">Um cliente pode ser pessoa física, pessoa jurídica, um diretório partidário (nacional, estadual ou municipal) ou um candidato.</p>
 
         <form class="form-grid" id="form-cliente-cadastro" data-form="cliente-cadastro" autocomplete="off">
           <div class="field">
@@ -54,19 +54,17 @@
             <input type="text" id="cad-documento" placeholder="Opcional">
           </div>
 
-          <div class="field" style="grid-column: 1 / -1; display:flex; gap: 2rem; flex-wrap: wrap;">
-            <label class="checkbox">
-              <input type="radio" name="cad-tipo" value="nenhum" checked>
-              Nenhum (pessoa física / empresa)
-            </label>
-            <label class="checkbox">
-              <input type="radio" name="cad-tipo" value="orgao">
-              É um órgão partidário
-            </label>
-            <label class="checkbox">
-              <input type="radio" name="cad-tipo" value="candidato">
-              É candidato
-            </label>
+          <div class="field" style="grid-column: 1 / -1;">
+            <label for="cad-tipo-cliente">Tipo de cliente</label>
+            <select id="cad-tipo-cliente" required>
+              <option value="">— selecione —</option>
+              <option value="pessoa_fisica">Pessoa física</option>
+              <option value="pessoa_juridica">Pessoa jurídica</option>
+              <option value="diretorio_nacional">Diretório Nacional</option>
+              <option value="diretorio_estadual">Diretório Estadual</option>
+              <option value="diretorio_municipal">Diretório Municipal</option>
+              <option value="candidato">Candidato</option>
+            </select>
           </div>
 
           <div class="field" data-campo-partido hidden>
@@ -92,26 +90,17 @@
             </div>
           </div>
 
-          <div class="field" data-campo-orgao hidden>
-            <label for="cad-nivel">Nível</label>
-            <select id="cad-nivel">
-              <option value="">— não se aplica —</option>
-              <option value="nacional">Nacional</option>
-              <option value="estadual">Estadual</option>
-              <option value="municipal">Municipal</option>
-            </select>
-          </div>
-          <div class="field" data-campo-orgao hidden>
+          <div class="field" data-campo-uf hidden>
             <label for="cad-uf">UF</label>
             <input type="text" id="cad-uf" maxlength="2" placeholder="Ex: BA">
           </div>
-          <div class="field" data-campo-orgao hidden>
+          <div class="field" data-campo-municipio hidden>
             <label for="cad-municipio">Município</label>
-            <input type="text" id="cad-municipio" placeholder="Se for municipal">
+            <input type="text" id="cad-municipio" placeholder="Ex: Salvador">
           </div>
-          <div class="field" data-campo-orgao hidden>
-            <label for="cad-pai">Cliente superior</label>
-            <select id="cad-pai"><option value="">— nenhum (é o órgão nacional) —</option></select>
+          <div class="field" data-campo-pai hidden>
+            <label for="cad-pai">Diretório superior</label>
+            <select id="cad-pai"><option value="">— selecione —</option></select>
           </div>
 
           <div class="field" data-campo-candidato hidden>
