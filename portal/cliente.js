@@ -236,6 +236,33 @@
 
     document.getElementById("edit-tipo-cliente").addEventListener("change", atualizarCamposClienteEdicao);
 
+    document.querySelector("[data-toggle-novo-partido-edit]").addEventListener("click", function () {
+      var box = document.querySelector("[data-novo-partido-box-edit]");
+      box.hidden = !box.hidden;
+    });
+
+    document.querySelector("[data-salvar-novo-partido-edit]").addEventListener("click", async function () {
+      var sigla = val("novo-partido-sigla-edit");
+      var nome = val("novo-partido-nome-edit");
+      if (!sigla || !nome) {
+        setMsg("novo-partido-edit", "preencha sigla e nome", true);
+        return;
+      }
+      try {
+        setMsg("novo-partido-edit", "Salvando…", false);
+        var { data: novo, error } = await bfSupabase.from("partidos").insert({ sigla: sigla, nome: nome }).select().single();
+        if (error) throw error;
+        await carregarPartidosParaEdicao();
+        document.getElementById("edit-partido").value = novo.id;
+        document.getElementById("novo-partido-sigla-edit").value = "";
+        document.getElementById("novo-partido-nome-edit").value = "";
+        document.querySelector("[data-novo-partido-box-edit]").hidden = true;
+        setMsg("novo-partido-edit", "", false);
+      } catch (err) {
+        setMsg("novo-partido-edit", "Erro: " + (err.message || "tente novamente."), true);
+      }
+    });
+
     document.querySelector("[data-toggle-novo-processo]").addEventListener("click", function () {
       var box = document.querySelector("[data-novo-processo-box]");
       box.hidden = !box.hidden;
@@ -285,7 +312,6 @@
         foro: val("proc-foro"),
         status: val("proc-status") || "em_andamento",
         resultado: resultado,
-        data_decisao: val("proc-data-decisao"),
         data_protocolo: val("proc-data-protocolo"),
         responsavel_id: val("proc-responsavel"),
         houve_recurso: categoria === "prestacao_contas" ? boolVal("proc-houve-recurso") : null,

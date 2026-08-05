@@ -6,7 +6,7 @@
 <title>Painel — Bessoni &amp; Fortes</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/png" href="../assets/img/bf-mark-navy.png">
-<link rel="stylesheet" href="../css/style.css?v=17">
+<link rel="stylesheet" href="../css/style.css?v=19">
 </head>
 <body>
 
@@ -19,6 +19,7 @@
     <nav class="portal-nav">
       <a class="portal-nav-link is-active" href="admin.html">Painel</a>
       <a class="portal-nav-link" href="clientes.html">Cliente</a>
+      <a class="portal-nav-link" href="processos.html">Processos</a>
       <a class="portal-nav-link" href="cadastro-de-cliente.html">Cadastro</a>
       <a class="portal-nav-link" href="usuarios.html">Usuários</a>
       <a class="portal-nav-link" href="auditoria.html">Auditoria</a>
@@ -41,7 +42,8 @@
         <p>Panorama de processos e determinações de todos os clientes do escritório.</p>
       </div>
 
-      <div class="portal-stats">
+      <p class="portal-section-desc" style="margin-bottom: .6rem; text-transform: uppercase; font-size: .72rem; letter-spacing: .08em; color: var(--slate);">Atribuídos a você</p>
+      <div class="portal-stats" style="margin-bottom: 2.5rem;">
         <div class="portal-stat is-alert">
           <span class="num" data-stat="meus-processos">—</span>
           <span class="label">Seus processos em andamento</span>
@@ -52,50 +54,85 @@
         </div>
       </div>
 
-      <section class="portal-section">
-        <div class="field" style="margin-top: 0;">
-          <label for="busca-geral">Buscar clientes e processos</label>
-          <input type="text" id="busca-geral" placeholder="Nome do cliente, título ou nº do processo...">
-        </div>
-        <div data-busca-resultados hidden style="margin-top: 1.4rem;">
-          <div data-busca-clientes></div>
-          <div data-busca-processos style="margin-top: 1.4rem;"></div>
-        </div>
-      </section>
-
-      <div class="portal-stats">
-        <div class="portal-stat">
-          <span class="num" data-stat="total">—</span>
-          <span class="label">Determinações no total</span>
-        </div>
-        <div class="portal-stat is-alert">
-          <span class="num" data-stat="pendentes">—</span>
-          <span class="label">Pendentes</span>
-        </div>
-        <div class="portal-stat is-alert">
-          <span class="num" data-stat="vencidas">—</span>
-          <span class="label">Com prazo vencido</span>
-        </div>
-        <div class="portal-stat">
-          <span class="num" data-stat="cumpridas">—</span>
-          <span class="label">Já cumpridas</span>
-        </div>
-      </div>
-
       <div class="dashboard-layout">
         <div>
-          <section class="portal-section">
-            <h2>Processos por categoria</h2>
-            <div data-por-categoria><span class="empty-note">Carregando…</span></div>
-          </section>
+          <section class="portal-section" id="determinacoes">
+            <h2>Determinações</h2>
+            <p class="portal-section-desc">Números e lista abaixo consideram de todos os clientes e advogados — refletem os filtros que você escolher.</p>
 
-          <section class="portal-section">
-            <h2>Processos por advogado responsável</h2>
-            <div data-por-advogado><span class="empty-note">Carregando…</span></div>
+            <div class="portal-stats is-2col" style="margin-bottom: 1.6rem;">
+              <div class="portal-stat">
+                <span class="num" data-stat="total">—</span>
+                <span class="label">No total</span>
+              </div>
+              <div class="portal-stat is-alert">
+                <span class="num" data-stat="pendentes">—</span>
+                <span class="label">Pendentes</span>
+              </div>
+              <div class="portal-stat is-alert">
+                <span class="num" data-stat="vencidas">—</span>
+                <span class="label">Com prazo vencido</span>
+              </div>
+              <div class="portal-stat">
+                <span class="num" data-stat="cumpridas">—</span>
+                <span class="label">Já cumpridas</span>
+              </div>
+            </div>
+
+            <div class="portal-toolbar">
+              <div class="field">
+                <label for="filtro-cliente">Cliente</label>
+                <select id="filtro-cliente"><option value="">Todos</option></select>
+              </div>
+              <div class="field">
+                <label for="filtro-exercicio">Exercício</label>
+                <select id="filtro-exercicio"><option value="">Todos</option></select>
+              </div>
+              <div class="field">
+                <label for="filtro-status">Status</label>
+                <select id="filtro-status">
+                  <option value="">Todos</option>
+                  <option value="pendente">Pendente</option>
+                  <option value="vencida">Vencida</option>
+                  <option value="cumprida">Cumprida</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="filtro-responsavel">Responsável</label>
+                <select id="filtro-responsavel"><option value="">Todos</option></select>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table class="portal-table">
+                <thead>
+                  <tr>
+                    <th>Cliente</th>
+                    <th>Categoria</th>
+                    <th>Determinação</th>
+                    <th>Valor</th>
+                    <th>Prazo</th>
+                    <th>Status</th>
+                    <th>Responsável</th>
+                  </tr>
+                </thead>
+                <tbody data-list="determinacoes"><tr class="empty-row"><td colspan="7">Carregando…</td></tr></tbody>
+              </table>
+            </div>
           </section>
         </div>
 
         <aside>
+          <div class="sidebar-card">
+            <h3>Processos por categoria</h3>
+            <div data-por-categoria><span class="empty-note">Carregando…</span></div>
+          </div>
+
+          <div class="sidebar-card">
+            <h3>Processos por advogado responsável</h3>
+            <div data-por-advogado><span class="empty-note">Carregando…</span></div>
+          </div>
+
           <div class="sidebar-card">
             <h3>Próximos prazos</h3>
             <div data-proximos-prazos><span class="empty-note">Carregando…</span></div>
@@ -117,79 +154,6 @@
           </div>
         </aside>
       </div>
-
-      <section class="portal-section" id="processos">
-        <h2>Processos recentes</h2>
-        <p class="portal-section-desc">Últimos processos cadastrados, de qualquer cliente.</p>
-
-        <div class="portal-toolbar">
-          <div class="field" style="margin-top: 0;">
-            <label for="filtro-processo-responsavel">Responsável</label>
-            <select id="filtro-processo-responsavel"><option value="">Todos</option></select>
-          </div>
-        </div>
-
-        <div class="table-wrap">
-          <table class="portal-table">
-            <thead>
-              <tr>
-                <th>Cliente</th>
-                <th>Categoria</th>
-                <th>Ano</th>
-                <th>Status</th>
-                <th>Resultado</th>
-                <th>Responsável</th>
-              </tr>
-            </thead>
-            <tbody data-list="processos"><tr class="empty-row"><td colspan="6">Carregando…</td></tr></tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="portal-section" id="determinacoes">
-        <h2>Determinações</h2>
-
-        <div class="portal-toolbar">
-          <div class="field">
-            <label for="filtro-cliente">Cliente</label>
-            <select id="filtro-cliente"><option value="">Todos</option></select>
-          </div>
-          <div class="field">
-            <label for="filtro-exercicio">Exercício</label>
-            <select id="filtro-exercicio"><option value="">Todos</option></select>
-          </div>
-          <div class="field">
-            <label for="filtro-status">Status</label>
-            <select id="filtro-status">
-              <option value="">Todos</option>
-              <option value="pendente">Pendente</option>
-              <option value="vencida">Vencida</option>
-              <option value="cumprida">Cumprida</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="filtro-responsavel">Responsável</label>
-            <select id="filtro-responsavel"><option value="">Todos</option></select>
-          </div>
-        </div>
-
-        <div class="table-wrap">
-          <table class="portal-table">
-            <thead>
-              <tr>
-                <th>Cliente</th>
-                <th>Categoria</th>
-                <th>Determinação</th>
-                <th>Valor</th>
-                <th>Prazo</th>
-                <th>Status</th>
-                <th>Responsável</th>
-              </tr>
-            </thead>
-            <tbody data-list="determinacoes"><tr class="empty-row"><td colspan="7">Carregando…</td></tr></tbody>
-          </table>
-        </div>
-      </section>
 
     </main>
   </div>

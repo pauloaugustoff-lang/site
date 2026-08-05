@@ -130,7 +130,6 @@ create table processos (
   -- candidatura, procedente/improcedente para AIJE...). A tela de cadastro
   -- sugere as opções certas conforme a categoria escolhida.
   resultado text,
-  data_decisao date,
   data_protocolo date,
   -- fluxo de prestação de contas (relevantes quando categoria = prestacao_contas,
   -- mas ficam disponíveis pra qualquer processo)

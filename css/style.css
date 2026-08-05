@@ -1044,6 +1044,7 @@ section{ padding: clamp(4.5rem, 9vw, 8rem) 0; }
   border: 1px solid var(--mist);
   margin-bottom: 2.5rem;
 }
+.portal-stats.is-2col{ grid-template-columns: repeat(2, 1fr); }
 .portal-stat{ background: var(--white); padding: 1.4rem 1.5rem; min-width: 0; }
 .portal-stat .num{
   display: block;
@@ -1281,6 +1282,15 @@ section{ padding: clamp(4.5rem, 9vw, 8rem) 0; }
   .processo-layout,
   .dashboard-layout{ grid-template-columns: 1fr; }
 }
+
+.dashboard-grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: 1.6rem;
+  align-items: start;
+  margin-bottom: 2rem;
+}
+.dashboard-grid .portal-section{ margin-bottom: 0; }
 
 .stat-row{
   display: flex;

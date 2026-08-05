@@ -131,7 +131,6 @@
     document.getElementById("proc-orgaojulgador").value = p.orgao_julgador || "";
     document.getElementById("proc-foro").value = p.foro || "";
     document.getElementById("proc-status").value = p.status;
-    document.getElementById("proc-data-decisao").value = p.data_decisao || "";
     document.getElementById("proc-data-protocolo").value = p.data_protocolo || "";
     document.getElementById("proc-responsavel").value = p.responsavel_id || "";
     setBoolField("proc-houve-recurso", p.houve_recurso);
@@ -341,7 +340,6 @@
         foro: val("proc-foro"),
         status: val("proc-status") || "em_andamento",
         resultado: resultado,
-        data_decisao: val("proc-data-decisao"),
         data_protocolo: val("proc-data-protocolo"),
         responsavel_id: val("proc-responsavel"),
         houve_recurso: categoria === "prestacao_contas" ? boolVal("proc-houve-recurso") : null,

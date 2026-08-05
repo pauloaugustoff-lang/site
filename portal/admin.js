@@ -47,9 +47,6 @@
     if (isVencida(row)) return "vencida";
     return row.status;
   }
-  function linkProcesso(p) {
-    return p.numero_processo ? "processo.html?numero=" + encodeURIComponent(p.numero_processo) : "processo.html?id=" + p.id;
-  }
   function statusBadge(row) {
     var key = statusKey(row);
     var label = key === "vencida" ? "Vencida" : LABELS.statusDeterminacao[row.status] || row.status;
@@ -91,10 +88,8 @@
   async function carregarAdvogados() {
     var { data, error } = await bfSupabase.from("perfis").select("id, nome").eq("role", "escritorio").order("nome");
     if (error) { console.error(error); return; }
-    var options = '<option value="">Todos</option>' +
+    document.getElementById("filtro-responsavel").innerHTML = '<option value="">Todos</option>' +
       (data || []).map(function (a) { return '<option value="' + a.id + '">' + a.nome + "</option>"; }).join("");
-    document.getElementById("filtro-responsavel").innerHTML = options;
-    document.getElementById("filtro-processo-responsavel").innerHTML = options;
   }
 
   function renderStats(lista) {
@@ -142,37 +137,6 @@
 
     renderStats(filtradas);
     renderDeterminacoesTabela(filtradas);
-  }
-
-  async function carregarProcessos(responsavelFiltro) {
-    var query = bfSupabase
-      .from("processos")
-      .select("*, clientes(nome), perfis(nome)")
-      .order("created_at", { ascending: false })
-      .limit(15);
-    if (responsavelFiltro) query = query.eq("responsavel_id", responsavelFiltro);
-    var { data, error } = await query;
-
-    var tbody = document.querySelector('[data-list="processos"]');
-    if (error) {
-      console.error(error);
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Não foi possível carregar os processos agora.</td></tr>';
-      return;
-    }
-
-    var processos = data || [];
-    tbody.innerHTML = processos.length
-      ? processos.map(function (p) {
-          return "<tr>" +
-            "<td>" + (p.clientes ? p.clientes.nome : "—") + "</td>" +
-            "<td>" + (LABELS.categoria[p.categoria] || p.categoria) + "</td>" +
-            "<td>" + (p.ano || "—") + "</td>" +
-            "<td>" + (LABELS.status[p.status] || p.status) + "</td>" +
-            "<td>" + resultadoLabel(p.categoria, p.resultado) + "</td>" +
-            "<td>" + (p.perfis ? p.perfis.nome : "—") + "</td>" +
-          "</tr>";
-        }).join("")
-      : '<tr class="empty-row"><td colspan="6">Nenhum processo cadastrado ainda.</td></tr>';
   }
 
   async function carregarDeterminacoes() {
@@ -282,9 +246,6 @@
     ["filtro-cliente", "filtro-exercicio", "filtro-status", "filtro-responsavel"].forEach(function (id) {
       document.getElementById(id).addEventListener("change", aplicarFiltros);
     });
-    document.getElementById("filtro-processo-responsavel").addEventListener("change", function (e) {
-      carregarProcessos(e.target.value || null);
-    });
   }
 
   async function carregarMeusNumeros(meuId) {
@@ -294,59 +255,6 @@
     ]);
     document.querySelector('[data-stat="meus-processos"]').textContent = processosResp.count === null ? "—" : processosResp.count;
     document.querySelector('[data-stat="minhas-determinacoes"]').textContent = determinacoesResp.count === null ? "—" : determinacoesResp.count;
-  }
-
-  var buscaTimeout = null;
-
-  async function executarBusca(termo) {
-    var painel = document.querySelector("[data-busca-resultados]");
-    var elClientes = document.querySelector("[data-busca-clientes]");
-    var elProcessos = document.querySelector("[data-busca-processos]");
-
-    if (!termo) {
-      painel.hidden = true;
-      return;
-    }
-    painel.hidden = false;
-    elClientes.innerHTML = "Buscando…";
-    elProcessos.innerHTML = "";
-
-    var [clientesResp, processosResp] = await Promise.all([
-      bfSupabase.from("clientes").select("id, nome").ilike("nome", "%" + termo + "%").limit(8),
-      bfSupabase
-        .from("processos")
-        .select("id, titulo, categoria, ano, numero_processo, clientes(nome)")
-        .or("titulo.ilike.%" + termo + "%,numero_processo.ilike.%" + termo + "%")
-        .limit(8),
-    ]);
-
-    var clientes = clientesResp.data || [];
-    var processos = processosResp.data || [];
-
-    elClientes.innerHTML =
-      '<div class="portal-inline-msg" style="font-weight:600; text-transform:uppercase; letter-spacing:.08em; font-size:.7rem; color:var(--slate);">Clientes</div>' +
-      (clientes.length
-        ? clientes.map(function (c) {
-            return '<div style="padding:.5rem 0; border-bottom:1px solid var(--mist);"><a class="portal-inline-link" href="cliente.html?id=' + c.id + '">' + c.nome + "</a></div>";
-          }).join("")
-        : '<div class="portal-inline-msg">Nenhum cliente encontrado.</div>');
-
-    elProcessos.innerHTML =
-      '<div class="portal-inline-msg" style="font-weight:600; text-transform:uppercase; letter-spacing:.08em; font-size:.7rem; color:var(--slate);">Processos</div>' +
-      (processos.length
-        ? processos.map(function (p) {
-            var label = (p.titulo || LABELS.categoria[p.categoria] || p.categoria) + " — " + (p.clientes ? p.clientes.nome : "?") + (p.ano ? " · " + p.ano : "");
-            return '<div style="padding:.5rem 0; border-bottom:1px solid var(--mist);"><a class="portal-inline-link" href="' + linkProcesso(p) + '">' + label + "</a></div>";
-          }).join("")
-        : '<div class="portal-inline-msg">Nenhum processo encontrado.</div>');
-  }
-
-  function iniciarBusca() {
-    document.getElementById("busca-geral").addEventListener("input", function (e) {
-      var termo = e.target.value.trim();
-      clearTimeout(buscaTimeout);
-      buscaTimeout = setTimeout(function () { executarBusca(termo); }, 300);
-    });
   }
 
   async function init() {
@@ -365,10 +273,8 @@
     });
 
     iniciarFiltros();
-    iniciarBusca();
     await carregarAdvogados();
     await carregarMeusNumeros(session.user.id);
-    await carregarProcessos();
     await carregarDeterminacoes();
     await carregarDashboardProcessos();
   }

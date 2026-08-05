@@ -22,6 +22,7 @@
     "nome do partido": "nomePartido",
     "partido": "nomePartido",
     "tipo de cliente": "tipoCliente",
+    "instancia partidaria": "tipoCliente",
     "nivel": "tipoCliente", // alias antigo (modelo pré-v3)
     "uf": "uf",
     "municipio": "municipio",
@@ -38,7 +39,11 @@
     "orgao julgador": "orgaoJulgador",
     "status": "status",
     "resultado": "resultado",
-    "data da decisao": "dataDecisao",
+    "houve recurso": "houveRecurso",
+    "transito em julgado": "transitoJulgado",
+    "houve transito em julgado": "transitoJulgado",
+    "data do transito em julgado": "dataTransito",
+    "data do transito": "dataTransito",
     "tipo de determinacao": "tipoDeterminacao",
     "tipo de obrigacao": "tipoDeterminacao", // alias antigo (modelo pré-v3)
     "descricao": "descricaoDeterminacao",
@@ -154,6 +159,13 @@
     return s === "" ? null : s;
   }
 
+  var BOOLEANO_MAP = { sim: true, s: true, verdadeiro: true, nao: false, n: false, falso: false };
+  function parseBooleano(v) {
+    if (v === null || v === undefined || v === "") return null;
+    var chave = normalizar(v);
+    return BOOLEANO_MAP[chave] !== undefined ? BOOLEANO_MAP[chave] : null;
+  }
+
   // -----------------------------------------------------------
   // Leitura do arquivo
   // -----------------------------------------------------------
@@ -211,7 +223,9 @@
         orgaoJulgador: texto(pega(linha, "orgaoJulgador")),
         status: texto(pega(linha, "status")),
         resultado: texto(pega(linha, "resultado")),
-        dataDecisao: parseData(pega(linha, "dataDecisao")),
+        houveRecurso: parseBooleano(pega(linha, "houveRecurso")),
+        transitoJulgado: parseBooleano(pega(linha, "transitoJulgado")),
+        dataTransito: parseData(pega(linha, "dataTransito")),
         tipoDeterminacao: texto(pega(linha, "tipoDeterminacao")),
         descricaoDeterminacao: texto(pega(linha, "descricaoDeterminacao")),
         valor: parseValor(pega(linha, "valor")),
@@ -239,7 +253,7 @@
         "<td>" + (l.nomePartido || "—") + "</td>" +
         "<td>" + (l.categoria || "—") + "</td>" +
         "<td>" + (l.ano || "—") + "</td>" +
-        "<td>" + (l.tipoDeterminacao || "—") + "</td>" +
+        "<td>" + (l.numeroProcesso || "—") + "</td>" +
       "</tr>";
     }).join("");
 
@@ -371,7 +385,9 @@
       orgao_julgador: l.orgaoJulgador,
       status: status,
       resultado: resultado,
-      data_decisao: l.dataDecisao,
+      houve_recurso: l.houveRecurso,
+      transito_julgado: l.transitoJulgado,
+      data_transito: l.dataTransito,
       responsavel_id: responsavelId,
     };
     var criado = await bfSupabase.from("processos").insert(payload).select("id").single();
@@ -519,27 +535,21 @@
 
   function baixarModelo() {
     var cabecalho = [
-      "Nome do Cliente", "CPF/CNPJ", "Nome do Partido", "Tipo de Cliente", "UF", "Município", "Cliente Superior",
-      "Processo (nº)", "Categoria", "Subcategoria", "Título", "Ano", "Órgão Julgador", "Status", "Resultado",
-      "Data da decisão", "Advogado Responsável", "Tipo de Determinação", "Descrição (Texto livre)", "Valor",
-      "Exercício de cumprimento", "Responsável pela Determinação",
+      "Nome do Cliente", "Nome do Partido", "Instância Partidária", "UF", "Município", "Cliente Superior",
+      "Categoria", "Subcategoria", "Título", "Ano", "Processo (nº)", "Órgão Julgador", "Status", "Resultado",
+      "Houve recurso?", "Trânsito em julgado?", "Data do trânsito em julgado", "Advogado Responsável",
     ];
     var linhas = [
       cabecalho,
       [
-        "Diretório Nacional", "", "Partido Exemplo", "Diretório Nacional", "", "", "",
-        "0000000-00.2020.6.00.0000", "Prestação de Contas", "Anual", "Prestação de contas 2020", 2020, "TSE", "Concluído", "Não prestadas",
-        new Date(2021, 5, 15), "Paulo Fortes", "Aplicação em política da mulher", "Aplicar em políticas de fomento à participação feminina", 2000000, 2021, "Thamyris",
+        "Diretório Nacional", "Partido Exemplo", "Nacional", "", "", "",
+        "Prestação de Contas", "Anual", "Prestação de contas 2020", 2020, "0000000-00.2020.6.00.0000", "TSE", "Concluído", "Não prestadas",
+        "Não", "Sim", new Date(2021, 8, 10), "Paulo Fortes",
       ],
       [
-        "Diretório Nacional", "", "Partido Exemplo", "", "", "", "",
-        "0000000-00.2020.6.00.0000", "Prestação de Contas", "", "", "", "", "", "",
-        "", "", "Recolhimento à União", "Recolher à conta única do Tesouro Nacional", 10000, 2021, "Jefferson",
-      ],
-      [
-        "Diretório Estadual da Bahia", "", "Partido Exemplo", "Diretório Estadual", "BA", "", "Diretório Nacional",
-        "", "AIJE", "", "Investigação judicial eleitoral", 2022, "TRE-BA", "Em andamento", "",
-        "", "Paulo Fortes", "", "", "", "", "",
+        "Diretório Estadual da Bahia", "Partido Exemplo", "Estadual", "BA", "", "Diretório Nacional",
+        "AIJE", "", "Investigação judicial eleitoral", 2022, "0000001-11.2022.6.05.0000", "TRE-BA", "Em andamento", "",
+        "", "", "", "Paulo Fortes",
       ],
     ];
     var sheet = XLSX.utils.aoa_to_sheet(linhas);
@@ -552,24 +562,21 @@
       ["Categoria", "Registro de Candidatura"],
       ["Categoria", "DRAP"],
       ["Categoria", "Outro"],
-      ["Tipo de Cliente", "Diretório Nacional"],
-      ["Tipo de Cliente", "Diretório Estadual"],
-      ["Tipo de Cliente", "Diretório Municipal"],
-      ["Tipo de Cliente", "Candidato"],
-      ["Tipo de Cliente", "Pessoa Física"],
-      ["Tipo de Cliente", "Pessoa Jurídica"],
+      ["Instância Partidária", "Nacional"],
+      ["Instância Partidária", "Estadual"],
+      ["Instância Partidária", "Municipal"],
+      ["Instância Partidária (cliente que não é diretório)", "Candidato"],
+      ["Instância Partidária (cliente que não é diretório)", "Pessoa Física"],
+      ["Instância Partidária (cliente que não é diretório)", "Pessoa Jurídica"],
       ["Status", "Em andamento"],
       ["Status", "Aguardando diligência"],
       ["Status", "Concluído"],
+      ["Houve recurso? / Trânsito em julgado?", "Sim"],
+      ["Houve recurso? / Trânsito em julgado?", "Não"],
       ["Resultado (só p/ Prestação de Contas)", "Aprovadas"],
       ["Resultado (só p/ Prestação de Contas)", "Aprovadas com ressalvas"],
       ["Resultado (só p/ Prestação de Contas)", "Desaprovadas"],
       ["Resultado (só p/ Prestação de Contas)", "Não prestadas"],
-      ["Tipo de Determinação", "Recolhimento à União"],
-      ["Tipo de Determinação", "Aplicação em política da mulher"],
-      ["Tipo de Determinação", "Aplicação em ações afirmativas / minorias"],
-      ["Tipo de Determinação", "Multa"],
-      ["Tipo de Determinação", "Outra"],
     ];
     var sheetListas = XLSX.utils.aoa_to_sheet(listas);
 

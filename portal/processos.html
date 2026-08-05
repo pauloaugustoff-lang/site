@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Processos — Bessoni &amp; Fortes</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="../assets/img/bf-mark-navy.png">
+<link rel="stylesheet" href="../css/style.css?v=19">
+</head>
+<body>
+
+<div class="portal-shell">
+  <aside class="portal-sidebar">
+    <a class="portal-brand" href="../index.html" aria-label="Bessoni & Fortes">
+      <img src="../assets/img/logo-wordmark-white.png" alt="Bessoni & Fortes">
+    </a>
+
+    <nav class="portal-nav">
+      <a class="portal-nav-link" href="admin.html">Painel</a>
+      <a class="portal-nav-link" href="clientes.html">Cliente</a>
+      <a class="portal-nav-link is-active" href="processos.html">Processos</a>
+      <a class="portal-nav-link" href="cadastro-de-cliente.html">Cadastro</a>
+      <a class="portal-nav-link" href="usuarios.html">Usuários</a>
+      <a class="portal-nav-link" href="auditoria.html">Auditoria</a>
+    </nav>
+
+    <div class="portal-sidebar-foot">
+      <div class="portal-who">
+        <span data-user-nome>—</span>
+        <span class="tag">Escritório</span>
+      </div>
+      <button class="portal-logout" type="button" data-logout>Sair</button>
+    </div>
+  </aside>
+
+  <div class="portal-content">
+    <main class="portal-main">
+
+      <div class="portal-head">
+        <h1>Processos</h1>
+        <p>Todos os processos cadastrados, de qualquer cliente.</p>
+      </div>
+
+      <section class="portal-section">
+        <div class="field" style="margin-top: 0;">
+          <label for="busca-processo">Buscar</label>
+          <input type="text" id="busca-processo" placeholder="Nome do cliente, título ou nº do processo...">
+        </div>
+
+        <div class="portal-toolbar">
+          <div class="field" style="margin-top: 0;">
+            <label for="filtro-categoria">Categoria</label>
+            <select id="filtro-categoria">
+              <option value="">Todas</option>
+              <option value="prestacao_contas">Prestação de contas</option>
+              <option value="aije">AIJE</option>
+              <option value="representacao">Representação</option>
+              <option value="registro_candidatura">Registro de candidatura</option>
+              <option value="drap">DRAP</option>
+              <option value="outro">Outro</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="filtro-status">Status</label>
+            <select id="filtro-status">
+              <option value="">Todos</option>
+              <option value="em_andamento">Em andamento</option>
+              <option value="aguardando_diligencia">Aguardando diligência</option>
+              <option value="concluido">Concluído</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="filtro-responsavel">Responsável</label>
+            <select id="filtro-responsavel"><option value="">Todos</option></select>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="portal-table">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Categoria</th>
+                <th>Ano</th>
+                <th>Status</th>
+                <th>Resultado</th>
+                <th>Responsável</th>
+              </tr>
+            </thead>
+            <tbody data-list="processos"><tr class="empty-row"><td colspan="6">Carregando…</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase-config.js"></script>
+<script src="../js/auth.js"></script>
+<script src="processos.js"></script>
+</body>
+</html>

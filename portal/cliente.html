@@ -6,7 +6,7 @@
 <title>Pasta do cliente — Bessoni &amp; Fortes</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/png" href="../assets/img/bf-mark-navy.png">
-<link rel="stylesheet" href="../css/style.css?v=17">
+<link rel="stylesheet" href="../css/style.css?v=19">
 </head>
 <body>
 
@@ -19,6 +19,7 @@
     <nav class="portal-nav">
       <a class="portal-nav-link" href="admin.html">Painel</a>
       <a class="portal-nav-link is-active" href="clientes.html">Cliente</a>
+      <a class="portal-nav-link" href="processos.html">Processos</a>
       <a class="portal-nav-link" href="cadastro-de-cliente.html">Cadastro</a>
       <a class="portal-nav-link" href="usuarios.html">Usuários</a>
       <a class="portal-nav-link" href="auditoria.html">Auditoria</a>
@@ -70,6 +71,24 @@
           <div class="field" data-campo-partido hidden>
             <label for="edit-partido">Partido</label>
             <select id="edit-partido"><option value="">— não vinculado a partido —</option></select>
+          </div>
+          <div class="field" data-campo-partido hidden style="align-self: end;">
+            <button type="button" class="portal-inline-link" data-toggle-novo-partido-edit>+ Cadastrar novo partido</button>
+          </div>
+
+          <div class="form-grid" data-novo-partido-box-edit hidden style="grid-column: 1 / -1; padding: 1rem; border: 1px dashed var(--mist);">
+            <div class="field">
+              <label for="novo-partido-sigla-edit">Sigla do novo partido</label>
+              <input type="text" id="novo-partido-sigla-edit" placeholder="Ex: XX">
+            </div>
+            <div class="field">
+              <label for="novo-partido-nome-edit">Nome do novo partido</label>
+              <input type="text" id="novo-partido-nome-edit" placeholder="Nome completo">
+            </div>
+            <div class="field" style="align-self: end;">
+              <button type="button" class="btn btn-ghost-light" data-salvar-novo-partido-edit>Salvar partido</button>
+              <span class="portal-inline-msg" data-msg="novo-partido-edit"></span>
+            </div>
           </div>
 
           <div class="field" data-campo-uf hidden>
@@ -168,10 +187,6 @@
             <div class="field" data-resultado-texto-wrap hidden>
               <label for="proc-resultado-texto">Resultado</label>
               <input type="text" id="proc-resultado-texto" placeholder="Ex: Deferido / Indeferido / Procedente...">
-            </div>
-            <div class="field">
-              <label for="proc-data-decisao">Data da decisão</label>
-              <input type="date" id="proc-data-decisao">
             </div>
             <div class="field">
               <label for="proc-data-protocolo">Data de protocolo</label>
