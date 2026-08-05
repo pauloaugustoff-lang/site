@@ -29,7 +29,7 @@
 
   function fmtMoeda(v) {
     if (v === null || v === undefined) return "—";
-    return Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    return Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }).replace(new RegExp(String.fromCharCode(160), "g"), " ");
   }
   function fmtData(v) {
     if (!v) return "—";
@@ -46,6 +46,9 @@
   function statusKey(row) {
     if (isVencida(row)) return "vencida";
     return row.status;
+  }
+  function linkProcesso(p) {
+    return p.numero_processo ? "processo.html?numero=" + encodeURIComponent(p.numero_processo) : "processo.html?id=" + p.id;
   }
   function statusBadge(row) {
     var key = statusKey(row);
@@ -69,6 +72,8 @@
         valor: d.valor,
         prazo: d.prazo,
         status: d.status,
+        responsavelId: d.responsavel_id,
+        responsavelNome: d.perfis ? d.perfis.nome : null,
       };
     });
   }
@@ -81,6 +86,15 @@
       '<option value="">Todos</option>' + clientesNomes.map(function (c) { return '<option value="' + c + '">' + c + "</option>"; }).join("");
     document.getElementById("filtro-exercicio").innerHTML =
       '<option value="">Todos</option>' + exercicios.map(function (e) { return '<option value="' + e + '">' + e + "</option>"; }).join("");
+  }
+
+  async function carregarAdvogados() {
+    var { data, error } = await bfSupabase.from("perfis").select("id, nome").eq("role", "escritorio").order("nome");
+    if (error) { console.error(error); return; }
+    var options = '<option value="">Todos</option>' +
+      (data || []).map(function (a) { return '<option value="' + a.id + '">' + a.nome + "</option>"; }).join("");
+    document.getElementById("filtro-responsavel").innerHTML = options;
+    document.getElementById("filtro-processo-responsavel").innerHTML = options;
   }
 
   function renderStats(lista) {
@@ -96,7 +110,7 @@
   function renderDeterminacoesTabela(lista) {
     var tbody = document.querySelector('[data-list="determinacoes"]');
     if (!lista.length) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Nenhuma determinação encontrada para esse filtro.</td></tr>';
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="7">Nenhuma determinação encontrada para esse filtro.</td></tr>';
       return;
     }
     tbody.innerHTML = lista.map(function (l) {
@@ -107,6 +121,7 @@
         "<td>" + fmtMoeda(l.valor) + "</td>" +
         "<td>" + fmtData(l.prazo) + "</td>" +
         "<td>" + statusBadge(l) + "</td>" +
+        "<td>" + (l.responsavelNome || "—") + "</td>" +
       "</tr>";
     }).join("");
   }
@@ -115,11 +130,13 @@
     var cliente = document.getElementById("filtro-cliente").value;
     var exercicio = document.getElementById("filtro-exercicio").value;
     var status = document.getElementById("filtro-status").value;
+    var responsavel = document.getElementById("filtro-responsavel").value;
 
     var filtradas = linhasDeterminacoes.filter(function (l) {
       if (cliente && l.clienteNome !== cliente) return false;
       if (exercicio && String(l.ano) !== exercicio) return false;
       if (status && statusKey(l) !== status) return false;
+      if (responsavel && l.responsavelId !== responsavel) return false;
       return true;
     });
 
@@ -127,17 +144,19 @@
     renderDeterminacoesTabela(filtradas);
   }
 
-  async function carregarProcessos() {
-    var { data, error } = await bfSupabase
+  async function carregarProcessos(responsavelFiltro) {
+    var query = bfSupabase
       .from("processos")
-      .select("*, clientes(nome)")
+      .select("*, clientes(nome), perfis(nome)")
       .order("created_at", { ascending: false })
       .limit(15);
+    if (responsavelFiltro) query = query.eq("responsavel_id", responsavelFiltro);
+    var { data, error } = await query;
 
     var tbody = document.querySelector('[data-list="processos"]');
     if (error) {
       console.error(error);
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="5">Não foi possível carregar os processos agora.</td></tr>';
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Não foi possível carregar os processos agora.</td></tr>';
       return;
     }
 
@@ -150,15 +169,16 @@
             "<td>" + (p.ano || "—") + "</td>" +
             "<td>" + (LABELS.status[p.status] || p.status) + "</td>" +
             "<td>" + resultadoLabel(p.categoria, p.resultado) + "</td>" +
+            "<td>" + (p.perfis ? p.perfis.nome : "—") + "</td>" +
           "</tr>";
         }).join("")
-      : '<tr class="empty-row"><td colspan="5">Nenhum processo cadastrado ainda.</td></tr>';
+      : '<tr class="empty-row"><td colspan="6">Nenhum processo cadastrado ainda.</td></tr>';
   }
 
   async function carregarDeterminacoes() {
     var { data, error } = await bfSupabase
       .from("determinacoes")
-      .select("*, processos(categoria, ano, clientes(nome))")
+      .select("*, perfis(nome), processos(categoria, ano, clientes(nome))")
       .order("prazo", { ascending: true, nullsFirst: false });
 
     if (error) {
@@ -171,12 +191,109 @@
     linhasDeterminacoes = achatarDeterminacoes(data || []);
     popularFiltros();
     aplicarFiltros();
+    renderProximosPrazos();
+    renderClientesPendencias();
+  }
+
+  function contagemPor(lista, chaveFn) {
+    var mapa = new Map();
+    lista.forEach(function (item) {
+      var chave = chaveFn(item);
+      if (!chave) return;
+      mapa.set(chave, (mapa.get(chave) || 0) + 1);
+    });
+    return Array.from(mapa.entries()).sort(function (a, b) { return b[1] - a[1]; });
+  }
+
+  function renderStatRows(selector, pares, vazio) {
+    var el = document.querySelector(selector);
+    el.innerHTML = pares.length
+      ? pares.map(function (p) {
+          return '<div class="stat-row"><span class="label">' + p[0] + '</span><span class="value">' + p[1] + "</span></div>";
+        }).join("")
+      : '<span class="empty-note">' + vazio + "</span>";
+  }
+
+  function renderProximosPrazos() {
+    var proximos = linhasDeterminacoes
+      .filter(function (l) { return l.status === "pendente" && l.prazo; })
+      .slice(0, 6);
+
+    var el = document.querySelector("[data-proximos-prazos]");
+    el.innerHTML = proximos.length
+      ? '<div class="sidebar-list">' + proximos.map(function (l) {
+          return '<div class="sidebar-item">' +
+            '<div class="t">' + l.clienteNome + " " + statusBadge(l) + "</div>" +
+            '<div class="d">' + (LABELS.tipoDeterminacao[l.tipo] || l.tipo) + " — " + l.descricao + "</div>" +
+            '<div class="d">Prazo ' + fmtData(l.prazo) + "</div>" +
+          "</div>";
+        }).join("") + "</div>"
+      : '<span class="empty-note">Nenhum prazo pendente.</span>';
+  }
+
+  function renderClientesPendencias() {
+    var pendentes = linhasDeterminacoes.filter(function (l) { return l.status === "pendente"; });
+    var pares = contagemPor(pendentes, function (l) { return l.clienteNome; }).slice(0, 5);
+    renderStatRows("[data-clientes-pendencias]", pares, "Nenhuma pendência.");
+  }
+
+  var processosDashboard = [];
+
+  async function carregarDashboardProcessos() {
+    var { data, error } = await bfSupabase
+      .from("processos")
+      .select("categoria, status, perfis(nome), clientes(uf, partido_id, partidos(sigla, nome))");
+
+    if (error) {
+      console.error(error);
+      ["[data-por-categoria]", "[data-por-advogado]", "[data-por-partido]", "[data-por-estado]"].forEach(function (sel) {
+        document.querySelector(sel).innerHTML = '<span class="empty-note">Não foi possível carregar: ' + error.message + "</span>";
+      });
+      return;
+    }
+    processosDashboard = data || [];
+
+    renderStatRows(
+      "[data-por-categoria]",
+      contagemPor(processosDashboard, function (p) { return LABELS.categoria[p.categoria] || p.categoria; }),
+      "Nenhum processo cadastrado."
+    );
+    renderStatRows(
+      "[data-por-advogado]",
+      contagemPor(processosDashboard, function (p) { return p.perfis ? p.perfis.nome : "Não atribuído"; }),
+      "Nenhum processo cadastrado."
+    );
+    renderStatRows(
+      "[data-por-partido]",
+      contagemPor(processosDashboard, function (p) {
+        var partido = p.clientes && p.clientes.partidos;
+        return partido ? (partido.sigla || partido.nome) : "Sem partido";
+      }),
+      "Nenhum processo cadastrado."
+    );
+    renderStatRows(
+      "[data-por-estado]",
+      contagemPor(processosDashboard, function (p) { return p.clientes ? p.clientes.uf : null; }),
+      "Nenhum processo com UF cadastrada."
+    );
   }
 
   function iniciarFiltros() {
-    ["filtro-cliente", "filtro-exercicio", "filtro-status"].forEach(function (id) {
+    ["filtro-cliente", "filtro-exercicio", "filtro-status", "filtro-responsavel"].forEach(function (id) {
       document.getElementById(id).addEventListener("change", aplicarFiltros);
     });
+    document.getElementById("filtro-processo-responsavel").addEventListener("change", function (e) {
+      carregarProcessos(e.target.value || null);
+    });
+  }
+
+  async function carregarMeusNumeros(meuId) {
+    var [processosResp, determinacoesResp] = await Promise.all([
+      bfSupabase.from("processos").select("id", { count: "exact", head: true }).eq("responsavel_id", meuId).eq("status", "em_andamento"),
+      bfSupabase.from("determinacoes").select("id", { count: "exact", head: true }).eq("responsavel_id", meuId).eq("status", "pendente"),
+    ]);
+    document.querySelector('[data-stat="meus-processos"]').textContent = processosResp.count === null ? "—" : processosResp.count;
+    document.querySelector('[data-stat="minhas-determinacoes"]').textContent = determinacoesResp.count === null ? "—" : determinacoesResp.count;
   }
 
   var buscaTimeout = null;
@@ -219,7 +336,7 @@
       (processos.length
         ? processos.map(function (p) {
             var label = (p.titulo || LABELS.categoria[p.categoria] || p.categoria) + " — " + (p.clientes ? p.clientes.nome : "?") + (p.ano ? " · " + p.ano : "");
-            return '<div style="padding:.5rem 0; border-bottom:1px solid var(--mist);"><a class="portal-inline-link" href="processo.html?id=' + p.id + '">' + label + "</a></div>";
+            return '<div style="padding:.5rem 0; border-bottom:1px solid var(--mist);"><a class="portal-inline-link" href="' + linkProcesso(p) + '">' + label + "</a></div>";
           }).join("")
         : '<div class="portal-inline-msg">Nenhum processo encontrado.</div>');
   }
@@ -249,8 +366,11 @@
 
     iniciarFiltros();
     iniciarBusca();
+    await carregarAdvogados();
+    await carregarMeusNumeros(session.user.id);
     await carregarProcessos();
     await carregarDeterminacoes();
+    await carregarDashboardProcessos();
   }
 
   init();

@@ -6,7 +6,7 @@
 <title>Painel — Bessoni &amp; Fortes</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/png" href="../assets/img/bf-mark-navy.png">
-<link rel="stylesheet" href="../css/style.css?v=13">
+<link rel="stylesheet" href="../css/style.css?v=17">
 </head>
 <body>
 
@@ -20,6 +20,8 @@
       <a class="portal-nav-link is-active" href="admin.html">Painel</a>
       <a class="portal-nav-link" href="clientes.html">Cliente</a>
       <a class="portal-nav-link" href="cadastro-de-cliente.html">Cadastro</a>
+      <a class="portal-nav-link" href="usuarios.html">Usuários</a>
+      <a class="portal-nav-link" href="auditoria.html">Auditoria</a>
     </nav>
 
     <div class="portal-sidebar-foot">
@@ -37,6 +39,17 @@
       <div class="portal-head">
         <h1>Painel</h1>
         <p>Panorama de processos e determinações de todos os clientes do escritório.</p>
+      </div>
+
+      <div class="portal-stats">
+        <div class="portal-stat is-alert">
+          <span class="num" data-stat="meus-processos">—</span>
+          <span class="label">Seus processos em andamento</span>
+        </div>
+        <div class="portal-stat is-alert">
+          <span class="num" data-stat="minhas-determinacoes">—</span>
+          <span class="label">Suas determinações pendentes</span>
+        </div>
       </div>
 
       <section class="portal-section">
@@ -69,9 +82,52 @@
         </div>
       </div>
 
+      <div class="dashboard-layout">
+        <div>
+          <section class="portal-section">
+            <h2>Processos por categoria</h2>
+            <div data-por-categoria><span class="empty-note">Carregando…</span></div>
+          </section>
+
+          <section class="portal-section">
+            <h2>Processos por advogado responsável</h2>
+            <div data-por-advogado><span class="empty-note">Carregando…</span></div>
+          </section>
+        </div>
+
+        <aside>
+          <div class="sidebar-card">
+            <h3>Próximos prazos</h3>
+            <div data-proximos-prazos><span class="empty-note">Carregando…</span></div>
+          </div>
+
+          <div class="sidebar-card">
+            <h3>Clientes com mais pendências</h3>
+            <div data-clientes-pendencias><span class="empty-note">Carregando…</span></div>
+          </div>
+
+          <div class="sidebar-card">
+            <h3>Por partido</h3>
+            <div data-por-partido><span class="empty-note">Carregando…</span></div>
+          </div>
+
+          <div class="sidebar-card">
+            <h3>Por estado</h3>
+            <div data-por-estado><span class="empty-note">Carregando…</span></div>
+          </div>
+        </aside>
+      </div>
+
       <section class="portal-section" id="processos">
         <h2>Processos recentes</h2>
         <p class="portal-section-desc">Últimos processos cadastrados, de qualquer cliente.</p>
+
+        <div class="portal-toolbar">
+          <div class="field" style="margin-top: 0;">
+            <label for="filtro-processo-responsavel">Responsável</label>
+            <select id="filtro-processo-responsavel"><option value="">Todos</option></select>
+          </div>
+        </div>
 
         <div class="table-wrap">
           <table class="portal-table">
@@ -82,9 +138,10 @@
                 <th>Ano</th>
                 <th>Status</th>
                 <th>Resultado</th>
+                <th>Responsável</th>
               </tr>
             </thead>
-            <tbody data-list="processos"><tr class="empty-row"><td colspan="5">Carregando…</td></tr></tbody>
+            <tbody data-list="processos"><tr class="empty-row"><td colspan="6">Carregando…</td></tr></tbody>
           </table>
         </div>
       </section>
@@ -110,6 +167,10 @@
               <option value="cumprida">Cumprida</option>
             </select>
           </div>
+          <div class="field">
+            <label for="filtro-responsavel">Responsável</label>
+            <select id="filtro-responsavel"><option value="">Todos</option></select>
+          </div>
         </div>
 
         <div class="table-wrap">
@@ -122,9 +183,10 @@
                 <th>Valor</th>
                 <th>Prazo</th>
                 <th>Status</th>
+                <th>Responsável</th>
               </tr>
             </thead>
-            <tbody data-list="determinacoes"><tr class="empty-row"><td colspan="6">Carregando…</td></tr></tbody>
+            <tbody data-list="determinacoes"><tr class="empty-row"><td colspan="7">Carregando…</td></tr></tbody>
           </table>
         </div>
       </section>

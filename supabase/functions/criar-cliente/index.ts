@@ -1,9 +1,10 @@
 // Edge Function: criar-cliente
 //
-// Cria o login (Supabase Auth) e o perfil (tabela `perfis`, role='cliente')
-// de um novo cliente, vinculado a um órgão partidário. Só quem já é
-// `role = escritorio` pode chamar isso — a checagem é feita aqui dentro,
-// usando a service_role key, que nunca fica exposta no site.
+// Cria o login (Supabase Auth) e o perfil (tabela `perfis`) de um novo
+// usuário — cliente (vinculado a um cliente_id) ou membro do escritório
+// (role='escritorio', sem cliente_id). Só quem já é `role = escritorio`
+// pode chamar isso — a checagem é feita aqui dentro, usando a service_role
+// key, que nunca fica exposta no site.
 //
 // Como publicar: cole este arquivo no Supabase Dashboard em
 // Edge Functions → New function → nome "criar-cliente" → Deploy.
@@ -64,8 +65,9 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Sem permissão para criar acessos." }, 403);
     }
 
-    const { email, nome, cliente_id, escopo } = await req.json();
-    if (!email || !nome || !cliente_id) {
+    const { email, nome, cliente_id, escopo, role } = await req.json();
+    const roleFinal = role === "escritorio" ? "escritorio" : "cliente";
+    if (!email || !nome || (roleFinal === "cliente" && !cliente_id)) {
       return jsonResponse({ error: "Preencha nome, e-mail e cliente." }, 400);
     }
     const escopoFinal = escopo === "prestacao_contas" ? "prestacao_contas" : "total";
@@ -84,8 +86,9 @@ Deno.serve(async (req) => {
     const { error: perfilErr } = await admin.from("perfis").insert({
       id: novoUsuario.user.id,
       nome,
-      cliente_id,
-      role: "cliente",
+      email,
+      cliente_id: roleFinal === "escritorio" ? null : cliente_id,
+      role: roleFinal,
       escopo: escopoFinal,
     });
     if (perfilErr) {

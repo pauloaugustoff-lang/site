@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Clientes — Bessoni &amp; Fortes</title>
+<title>Auditoria — Bessoni &amp; Fortes</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/png" href="../assets/img/bf-mark-navy.png">
 <link rel="stylesheet" href="../css/style.css?v=17">
@@ -18,10 +18,10 @@
 
     <nav class="portal-nav">
       <a class="portal-nav-link" href="admin.html">Painel</a>
-      <a class="portal-nav-link is-active" href="clientes.html">Cliente</a>
+      <a class="portal-nav-link" href="clientes.html">Cliente</a>
       <a class="portal-nav-link" href="cadastro-de-cliente.html">Cadastro</a>
       <a class="portal-nav-link" href="usuarios.html">Usuários</a>
-      <a class="portal-nav-link" href="auditoria.html">Auditoria</a>
+      <a class="portal-nav-link is-active" href="auditoria.html">Auditoria</a>
     </nav>
 
     <div class="portal-sidebar-foot">
@@ -37,34 +37,44 @@
     <main class="portal-main">
 
       <div class="portal-head">
-        <h1>Clientes</h1>
-        <p>Todos os clientes cadastrados. Clique em um para abrir a pasta dele (processos, determinações e acessos). Precisa cadastrar um novo? Vá em <a href="cadastro-de-cliente.html">Cadastro</a>.</p>
+        <h1>Auditoria</h1>
+        <p>Histórico de alterações em clientes, processos e determinações — quem mudou o quê e quando. Mostra as 200 alterações mais recentes.</p>
       </div>
 
       <section class="portal-section">
         <div class="portal-toolbar">
           <div class="field">
-            <label for="filtro-busca">Buscar</label>
-            <input type="text" id="filtro-busca" placeholder="Nome do cliente...">
+            <label for="filtro-tabela">Tabela</label>
+            <select id="filtro-tabela">
+              <option value="">Todas</option>
+              <option value="clientes">Clientes</option>
+              <option value="processos">Processos</option>
+              <option value="determinacoes">Determinações</option>
+            </select>
           </div>
           <div class="field">
-            <label for="filtro-tipo">Tipo</label>
-            <select id="filtro-tipo">
-              <option value="">Todos</option>
-              <option value="diretorio_nacional">Diretório Nacional</option>
-              <option value="diretorio_estadual">Diretório Estadual</option>
-              <option value="diretorio_municipal">Diretório Municipal</option>
-              <option value="candidato">Candidato</option>
-              <option value="pessoa_fisica">Pessoa física</option>
-              <option value="pessoa_juridica">Pessoa jurídica</option>
-            </select>
+            <label for="filtro-usuario">Usuário</label>
+            <select id="filtro-usuario"><option value="">Todos</option></select>
+          </div>
+          <div class="field">
+            <label for="busca-campo">Campo</label>
+            <input type="text" id="busca-campo" placeholder="Ex: status, valor, prazo...">
           </div>
         </div>
 
         <div class="table-wrap">
           <table class="portal-table">
-            <thead><tr><th>Cliente</th><th>Tipo</th><th>Partido</th><th></th></tr></thead>
-            <tbody data-list="clientes"><tr class="empty-row"><td colspan="4">Carregando…</td></tr></tbody>
+            <thead>
+              <tr>
+                <th>Quando</th>
+                <th>Usuário</th>
+                <th>Tabela</th>
+                <th>Campo</th>
+                <th>Valor anterior</th>
+                <th>Valor novo</th>
+              </tr>
+            </thead>
+            <tbody data-list="auditoria"><tr class="empty-row"><td colspan="6">Carregando…</td></tr></tbody>
           </table>
         </div>
       </section>
@@ -76,6 +86,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../js/supabase-config.js"></script>
 <script src="../js/auth.js"></script>
-<script src="clientes.js"></script>
+<script src="auditoria.js"></script>
 </body>
 </html>

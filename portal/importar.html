@@ -6,7 +6,7 @@
 <title>Importar planilha — Bessoni &amp; Fortes</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/png" href="../assets/img/bf-mark-navy.png">
-<link rel="stylesheet" href="../css/style.css?v=13">
+<link rel="stylesheet" href="../css/style.css?v=17">
 </head>
 <body>
 
@@ -20,6 +20,8 @@
       <a class="portal-nav-link" href="admin.html">Painel</a>
       <a class="portal-nav-link" href="clientes.html">Cliente</a>
       <a class="portal-nav-link is-active" href="cadastro-de-cliente.html">Cadastro</a>
+      <a class="portal-nav-link" href="usuarios.html">Usuários</a>
+      <a class="portal-nav-link" href="auditoria.html">Auditoria</a>
     </nav>
 
     <div class="portal-sidebar-foot">
@@ -45,16 +47,21 @@
         <p class="portal-section-desc">
           Nome do Cliente · CPF/CNPJ · Nome do Partido · Tipo de Cliente · UF · Município · Cliente Superior ·
           Processo (nº) · Categoria · Subcategoria · Título · Ano · Órgão Julgador · Status · Resultado ·
-          Data da decisão · Tipo de Determinação · Descrição · Valor · Exercício de cumprimento
+          Data da decisão · Advogado Responsável · Tipo de Determinação · Descrição · Valor ·
+          Exercício de cumprimento · Responsável pela Determinação
         </p>
         <p class="portal-section-desc">
-          Só <strong>Nome do Cliente</strong> e <strong>Categoria</strong> são obrigatórios. "Cliente Superior" deve
+          <strong>Nome do Cliente</strong>, <strong>Categoria</strong> e <strong>Processo (nº)</strong> são
+          obrigatórios — todo processo precisa de número, e ele também identifica a URL da tela do processo, por
+          isso precisa ser único (não pode repetir entre processos diferentes). "Cliente Superior" deve
           bater exatamente com o Nome do Cliente de outra linha (ex: o Diretório Nacional precisa aparecer numa
           linha antes dos Diretórios Estaduais que o referenciam). Se "Tipo de Cliente" ficar em branco, o sistema
           tenta inferir pessoa física ou jurídica pelo CPF/CNPJ. Deixe "Tipo de Determinação" em branco se a linha
-          não tiver determinação. Só <strong>Descrição</strong> é texto livre — todo o resto que tem lista abaixo
-          precisa vir <strong>exatamente</strong> como está escrito (linha com valor errado não é importada, e
-          aparece no relatório de avisos no final):
+          não tiver determinação. "Advogado Responsável" e "Responsável pela Determinação" precisam bater com o
+          nome de um usuário já cadastrado em <a href="usuarios.html">Usuários</a> — se não encontrar, a linha é
+          importada mesmo assim, só fica sem responsável (avisa no relatório final). Só <strong>Descrição</strong>
+          é texto livre — todo o resto que tem lista abaixo precisa vir <strong>exatamente</strong> como está
+          escrito (linha com valor errado não é importada, e aparece no relatório de avisos no final):
         </p>
         <p class="portal-section-desc">
           <strong>Categoria:</strong> Prestação de Contas · AIJE · Representação · Registro de Candidatura · DRAP · Outro<br>

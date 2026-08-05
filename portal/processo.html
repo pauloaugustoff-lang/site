@@ -6,7 +6,7 @@
 <title>Processo — Bessoni &amp; Fortes</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/png" href="../assets/img/bf-mark-navy.png">
-<link rel="stylesheet" href="../css/style.css?v=13">
+<link rel="stylesheet" href="../css/style.css?v=17">
 </head>
 <body>
 
@@ -20,6 +20,8 @@
       <a class="portal-nav-link" href="admin.html">Painel</a>
       <a class="portal-nav-link is-active" href="clientes.html">Cliente</a>
       <a class="portal-nav-link" href="cadastro-de-cliente.html">Cadastro</a>
+      <a class="portal-nav-link" href="usuarios.html">Usuários</a>
+      <a class="portal-nav-link" href="auditoria.html">Auditoria</a>
     </nav>
 
     <div class="portal-sidebar-foot">
@@ -73,7 +75,7 @@
               </div>
               <div class="field">
                 <label for="proc-numero">Nº do processo</label>
-                <input type="text" id="proc-numero" placeholder="Opcional">
+                <input type="text" id="proc-numero" required placeholder="Ex: 0000000-00.2020.6.00.0000">
               </div>
               <div class="field">
                 <label for="proc-orgaojulgador">Órgão julgador</label>
@@ -113,10 +115,6 @@
                 <label for="proc-data-protocolo">Data de protocolo</label>
                 <input type="date" id="proc-data-protocolo">
               </div>
-              <div class="field">
-                <label for="proc-responsavel">Advogado responsável</label>
-                <input type="text" id="proc-responsavel" placeholder="Opcional">
-              </div>
               <div class="field" data-campo-contas hidden>
                 <label for="proc-houve-recurso">Houve recurso?</label>
                 <select id="proc-houve-recurso">
@@ -141,6 +139,10 @@
                 <label for="proc-observacoes">Observações</label>
                 <input type="text" id="proc-observacoes" placeholder="Opcional">
               </div>
+              <div class="field">
+                <label for="proc-responsavel">Advogado responsável</label>
+                <select id="proc-responsavel"><option value="">— não atribuído —</option></select>
+              </div>
             </form>
             <div class="portal-form-actions">
               <button class="btn btn-ghost-light" type="submit" form="form-processo">Salvar alterações</button>
@@ -156,7 +158,7 @@
           </div>
 
           <div class="sidebar-card">
-            <h3>Nova determinação</h3>
+            <h3 data-determinacao-form-titulo>Nova determinação</h3>
             <form id="form-determinacao" data-form="determinacao">
               <div class="field" style="margin-top:0;">
                 <label for="determinacao-tipo">Tipo</label>
@@ -185,8 +187,12 @@
                 <input type="date" id="determinacao-prazo">
               </div>
               <div class="field">
-                <label for="determinacao-responsavel">Responsável</label>
-                <input type="text" id="determinacao-responsavel" placeholder="Opcional">
+                <label for="determinacao-responsavel">Responsável pelo cumprimento</label>
+                <select id="determinacao-responsavel"><option value="">— não atribuído —</option></select>
+              </div>
+              <div class="field">
+                <label for="determinacao-data-transito">Data do trânsito em julgado</label>
+                <input type="date" id="determinacao-data-transito">
               </div>
               <div class="field">
                 <label for="determinacao-status">Status</label>
@@ -195,10 +201,38 @@
                   <option value="cumprida">Cumprida</option>
                 </select>
               </div>
+              <div class="field" data-campo-cumprimento hidden>
+                <label for="determinacao-data-cumprimento">Data do cumprimento</label>
+                <input type="date" id="determinacao-data-cumprimento">
+              </div>
+              <div class="field">
+                <label for="determinacao-observacoes">Observações</label>
+                <input type="text" id="determinacao-observacoes" placeholder="Opcional">
+              </div>
               <div class="portal-form-actions">
-                <button class="btn btn-ghost-light" type="submit" form="form-determinacao">Salvar determinação</button>
+                <button class="btn btn-ghost-light" type="submit" form="form-determinacao" data-determinacao-form-botao>Salvar determinação</button>
+                <button class="portal-inline-link" type="button" data-cancelar-edicao-determinacao hidden>Cancelar edição</button>
               </div>
               <span class="portal-inline-msg" data-msg="determinacao"></span>
+            </form>
+          </div>
+
+          <div class="sidebar-card">
+            <h3>Documentos</h3>
+            <div data-documentos-lista><span class="empty-note">Carregando…</span></div>
+            <form id="form-documento" data-form="documento" style="margin-top: 1rem;">
+              <div class="field" style="margin-top:0;">
+                <label for="documento-arquivo">Arquivo</label>
+                <input type="file" id="documento-arquivo">
+              </div>
+              <div class="field">
+                <label for="documento-determinacao">Vincular a uma determinação (opcional)</label>
+                <select id="documento-determinacao"><option value="">— documento geral do processo —</option></select>
+              </div>
+              <div class="portal-form-actions">
+                <button class="btn btn-ghost-light" type="submit" form="form-documento">Enviar arquivo</button>
+              </div>
+              <span class="portal-inline-msg" data-msg="documento"></span>
             </form>
           </div>
         </aside>

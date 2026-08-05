@@ -45,6 +45,10 @@
     "descricao texto livre": "descricaoDeterminacao",
     "valor": "valor",
     "exercicio de cumprimento": "exercicioCumprimento",
+    "advogado responsavel": "responsavelProcesso",
+    "responsavel do processo": "responsavelProcesso",
+    "responsavel pela determinacao": "responsavelDeterminacao",
+    "responsavel pelo cumprimento": "responsavelDeterminacao",
   };
 
   var TIPO_CLIENTE_MAP = {
@@ -212,6 +216,8 @@
         descricaoDeterminacao: texto(pega(linha, "descricaoDeterminacao")),
         valor: parseValor(pega(linha, "valor")),
         exercicioCumprimento: parseInteiro(pega(linha, "exercicioCumprimento")),
+        responsavelProcesso: texto(pega(linha, "responsavelProcesso")),
+        responsavelDeterminacao: texto(pega(linha, "responsavelDeterminacao")),
       });
     }
     return linhas;
@@ -244,6 +250,24 @@
   // -----------------------------------------------------------
   // Importação
   // -----------------------------------------------------------
+  async function carregarAdvogados() {
+    var { data, error } = await bfSupabase.from("perfis").select("id, nome").eq("role", "escritorio");
+    if (error) { console.error(error); return new Map(); }
+    var mapa = new Map();
+    (data || []).forEach(function (a) { mapa.set(normalizar(a.nome), a.id); });
+    return mapa;
+  }
+
+  function resolverResponsavel(nomeBruto, advogadosMap, avisos, numeroLinha, rotulo) {
+    if (!nomeBruto) return null;
+    var id = advogadosMap.get(normalizar(nomeBruto));
+    if (!id) {
+      avisos.push("Linha " + numeroLinha + ": " + rotulo + " '" + nomeBruto + "' não encontrado entre os usuários do escritório — deixado sem responsável (cadastre o usuário antes ou ajuste depois pela tela).");
+      return null;
+    }
+    return id;
+  }
+
   async function resolverPartido(nome, caches, avisos, numeroLinha) {
     if (!nome) return null;
     var chave = normalizar(nome);
@@ -326,13 +350,12 @@
   var OPCOES_RESULTADO_CONTAS = "Aprovadas, Aprovadas com ressalvas, Desaprovadas, Não prestadas";
   var OPCOES_TIPO_DETERMINACAO = "Recolhimento à União, Aplicação em política da mulher, Aplicação em ações afirmativas / minorias, Multa, Outra";
 
-  async function resolverProcesso(l, clienteId, categoria, status, resultado, caches, avisos) {
-    var chave = clienteId + "|" + (l.numeroProcesso ? normalizar(l.numeroProcesso) : (normalizar(categoria) + "|" + (l.ano || "")));
+  async function resolverProcesso(l, clienteId, categoria, status, resultado, responsavelId, caches, avisos) {
+    // numero_processo é obrigatório e único no banco — identifica o processo sozinho
+    var chave = normalizar(l.numeroProcesso);
     if (caches.processos.has(chave)) return caches.processos.get(chave);
 
-    var query = bfSupabase.from("processos").select("id").eq("cliente_id", clienteId).limit(1);
-    query = l.numeroProcesso ? query.eq("numero_processo", l.numeroProcesso) : query.eq("categoria", categoria).eq("ano", l.ano);
-    var existente = await query.maybeSingle();
+    var existente = await bfSupabase.from("processos").select("id").eq("numero_processo", l.numeroProcesso).maybeSingle();
     if (existente.data) {
       caches.processos.set(chave, existente.data.id);
       return existente.data.id;
@@ -349,6 +372,7 @@
       status: status,
       resultado: resultado,
       data_decisao: l.dataDecisao,
+      responsavel_id: responsavelId,
     };
     var criado = await bfSupabase.from("processos").insert(payload).select("id").single();
     if (criado.error) {
@@ -360,7 +384,7 @@
     return criado.data.id;
   }
 
-  async function resolverDeterminacao(l, processoId, tipo, avisos, caches) {
+  async function resolverDeterminacao(l, processoId, tipo, responsavelId, avisos, caches) {
     var payload = {
       processo_id: processoId,
       tipo: tipo,
@@ -368,6 +392,7 @@
       valor: l.valor,
       exercicio_cumprimento: l.exercicioCumprimento,
       status: "pendente",
+      responsavel_id: responsavelId,
     };
     var { error } = await bfSupabase.from("determinacoes").insert(payload);
     if (error) {
@@ -388,6 +413,7 @@
       determinacoesCriadas: 0,
     };
     var avisos = [];
+    var advogadosMap = await carregarAdvogados();
 
     for (var i = 0; i < linhas.length; i++) {
       var l = linhas[i];
@@ -397,6 +423,10 @@
       }
       if (!l.categoria) {
         avisos.push("Linha " + l.numeroLinha + ": sem Categoria, linha ignorada.");
+        continue;
+      }
+      if (!l.numeroProcesso) {
+        avisos.push("Linha " + l.numeroLinha + ": sem Processo (nº), linha ignorada — todo processo precisa de número.");
         continue;
       }
 
@@ -437,7 +467,8 @@
       var clienteId = await resolverCliente(l, partidoId, caches, avisos);
       if (!clienteId) continue;
 
-      var processoId = await resolverProcesso(l, clienteId, categoria, status, resultado, caches, avisos);
+      var responsavelProcessoId = resolverResponsavel(l.responsavelProcesso, advogadosMap, avisos, l.numeroLinha, "Advogado responsável");
+      var processoId = await resolverProcesso(l, clienteId, categoria, status, resultado, responsavelProcessoId, caches, avisos);
       if (!processoId) continue;
 
       // --- Tipo de Determinação (opcional, lista fechada) ---
@@ -446,7 +477,8 @@
         if (!tipoDeterminacao) {
           avisos.push("Linha " + l.numeroLinha + ": tipo de determinação '" + l.tipoDeterminacao + "' inválido — determinação não importada (processo foi importado normalmente). Valores aceitos: " + OPCOES_TIPO_DETERMINACAO + ".");
         } else {
-          await resolverDeterminacao(l, processoId, tipoDeterminacao, avisos, caches);
+          var responsavelDeterminacaoId = resolverResponsavel(l.responsavelDeterminacao, advogadosMap, avisos, l.numeroLinha, "Responsável pela determinação");
+          await resolverDeterminacao(l, processoId, tipoDeterminacao, responsavelDeterminacaoId, avisos, caches);
         }
       }
     }
@@ -489,24 +521,25 @@
     var cabecalho = [
       "Nome do Cliente", "CPF/CNPJ", "Nome do Partido", "Tipo de Cliente", "UF", "Município", "Cliente Superior",
       "Processo (nº)", "Categoria", "Subcategoria", "Título", "Ano", "Órgão Julgador", "Status", "Resultado",
-      "Data da decisão", "Tipo de Determinação", "Descrição (Texto livre)", "Valor", "Exercício de cumprimento",
+      "Data da decisão", "Advogado Responsável", "Tipo de Determinação", "Descrição (Texto livre)", "Valor",
+      "Exercício de cumprimento", "Responsável pela Determinação",
     ];
     var linhas = [
       cabecalho,
       [
         "Diretório Nacional", "", "Partido Exemplo", "Diretório Nacional", "", "", "",
         "0000000-00.2020.6.00.0000", "Prestação de Contas", "Anual", "Prestação de contas 2020", 2020, "TSE", "Concluído", "Não prestadas",
-        new Date(2021, 5, 15), "Aplicação em política da mulher", "Aplicar em políticas de fomento à participação feminina", 2000000, 2021,
+        new Date(2021, 5, 15), "Paulo Fortes", "Aplicação em política da mulher", "Aplicar em políticas de fomento à participação feminina", 2000000, 2021, "Thamyris",
       ],
       [
         "Diretório Nacional", "", "Partido Exemplo", "", "", "", "",
         "0000000-00.2020.6.00.0000", "Prestação de Contas", "", "", "", "", "", "",
-        "", "Recolhimento à União", "Recolher à conta única do Tesouro Nacional", 10000, 2021,
+        "", "", "Recolhimento à União", "Recolher à conta única do Tesouro Nacional", 10000, 2021, "Jefferson",
       ],
       [
         "Diretório Estadual da Bahia", "", "Partido Exemplo", "Diretório Estadual", "BA", "", "Diretório Nacional",
         "", "AIJE", "", "Investigação judicial eleitoral", 2022, "TRE-BA", "Em andamento", "",
-        "", "", "", "", "",
+        "", "Paulo Fortes", "", "", "", "", "",
       ],
     ];
     var sheet = XLSX.utils.aoa_to_sheet(linhas);

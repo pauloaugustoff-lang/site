@@ -29,7 +29,7 @@
 
   function fmtMoeda(v) {
     if (v === null || v === undefined) return "—";
-    return Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    return Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }).replace(new RegExp(String.fromCharCode(160), "g"), " ");
   }
   function fmtData(v) {
     if (!v) return "—";
@@ -54,6 +54,7 @@
   }
 
   var linhasDeterminacoes = [];
+  var processosCache = [];
 
   function achatarDeterminacoes(determinacoes) {
     return determinacoes.map(function (d) {
@@ -83,14 +84,50 @@
       '<option value="">Todos</option>' + exercicios.map(function (e) { return '<option value="' + e + '">' + e + "</option>"; }).join("");
   }
 
-  function renderStats(lista) {
-    var pendentes = lista.filter(function (l) { return l.status === "pendente" && !isVencida(l); }).length;
-    var vencidas = lista.filter(isVencida).length;
-    var cumpridas = lista.filter(function (l) { return l.status === "cumprida"; }).length;
-    document.querySelector('[data-stat="total"]').textContent = lista.length;
-    document.querySelector('[data-stat="pendentes"]').textContent = pendentes;
-    document.querySelector('[data-stat="vencidas"]').textContent = vencidas;
-    document.querySelector('[data-stat="cumpridas"]').textContent = cumpridas;
+  function setStat(key, valor) {
+    var el = document.querySelector('[data-stat="' + key + '"]');
+    if (el) el.textContent = valor;
+  }
+
+  function renderDashboardStats() {
+    var contas = processosCache.filter(function (p) { return p.categoria === "prestacao_contas"; });
+    var aprovadas = contas.filter(function (p) { return p.resultado === "aprovadas" || p.resultado === "aprovadas_com_ressalvas"; });
+    var desaprovadas = contas.filter(function (p) { return p.resultado === "desaprovadas"; });
+    var naoPrestadas = contas.filter(function (p) { return p.resultado === "nao_prestadas"; });
+    var andamento = processosCache.filter(function (p) { return p.status === "em_andamento"; });
+
+    var pendentes = linhasDeterminacoes.filter(function (d) { return d.status === "pendente"; });
+    var recolhimentos = pendentes.filter(function (d) { return d.tipo === "recolhimento_uniao"; });
+    var politicaMulher = pendentes.filter(function (d) { return d.tipo === "aplicacao_politica_mulher"; });
+    var somaValor = function (lista) { return lista.reduce(function (acc, d) { return acc + (Number(d.valor) || 0); }, 0); };
+
+    setStat("pc-total", contas.length);
+    setStat("pc-aprovadas", aprovadas.length);
+    setStat("pc-desaprovadas", desaprovadas.length);
+    setStat("pc-nao-prestadas", naoPrestadas.length);
+    setStat("processos-andamento", andamento.length);
+    setStat("determinacoes-pendentes", pendentes.length);
+    setStat("recolhimentos-pendentes", recolhimentos.length);
+    setStat("politica-mulher-pendentes", politicaMulher.length);
+    setStat("valor-recolher", fmtMoeda(somaValor(recolhimentos)));
+    setStat("valor-politica-mulher", fmtMoeda(somaValor(politicaMulher)));
+  }
+
+  function renderProximosVencimentos() {
+    var el = document.querySelector("[data-proximos-vencimentos]");
+    var proximos = linhasDeterminacoes
+      .filter(function (d) { return d.status === "pendente" && d.prazo; })
+      .slice(0, 6);
+
+    el.innerHTML = proximos.length
+      ? '<div class="sidebar-list">' + proximos.map(function (d) {
+          return '<div class="sidebar-item">' +
+            '<div class="t">' + d.clienteNome + " " + statusBadge(d) + "</div>" +
+            '<div class="d">' + (LABELS.tipoDeterminacao[d.tipo] || d.tipo) + " — " + d.descricao + "</div>" +
+            '<div class="d">Prazo ' + fmtData(d.prazo) + "</div>" +
+          "</div>";
+        }).join("") + "</div>"
+      : '<span class="empty-note">Nenhum vencimento pendente.</span>';
   }
 
   function renderDeterminacoesTabela(lista) {
@@ -123,24 +160,24 @@
       return true;
     });
 
-    renderStats(filtradas);
     renderDeterminacoesTabela(filtradas);
   }
 
   async function carregarProcessos() {
     var { data, error } = await bfSupabase
       .from("processos")
-      .select("*, clientes(nome)")
+      .select("*, clientes(nome), perfis(nome)")
       .order("ano", { ascending: false });
 
     var tbody = document.querySelector('[data-list="processos"]');
     if (error) {
       console.error(error);
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="5">Não foi possível carregar os processos agora.</td></tr>';
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Não foi possível carregar os processos agora.</td></tr>';
       return;
     }
 
     var processos = data || [];
+    processosCache = processos;
     tbody.innerHTML = processos.length
       ? processos.map(function (p) {
           return "<tr>" +
@@ -149,9 +186,11 @@
             "<td>" + (p.ano || "—") + "</td>" +
             "<td>" + (LABELS.status[p.status] || p.status) + "</td>" +
             "<td>" + resultadoLabel(p.categoria, p.resultado) + "</td>" +
+            "<td>" + (p.perfis ? p.perfis.nome : "—") + "</td>" +
           "</tr>";
         }).join("")
-      : '<tr class="empty-row"><td colspan="5">Nenhum processo encontrado.</td></tr>';
+      : '<tr class="empty-row"><td colspan="6">Nenhum processo encontrado.</td></tr>';
+    renderDashboardStats();
   }
 
   async function carregarDeterminacoes() {
@@ -170,6 +209,8 @@
     linhasDeterminacoes = achatarDeterminacoes(data || []);
     popularFiltros();
     aplicarFiltros();
+    renderDashboardStats();
+    renderProximosVencimentos();
   }
 
   function iniciarFiltros() {

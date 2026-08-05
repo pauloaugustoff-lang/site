@@ -6,7 +6,7 @@
 <title>Painel do Cliente — Bessoni &amp; Fortes</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/png" href="../assets/img/bf-mark-navy.png">
-<link rel="stylesheet" href="../css/style.css?v=13">
+<link rel="stylesheet" href="../css/style.css?v=17">
 </head>
 <body>
 
@@ -33,30 +33,56 @@
     <main class="portal-main">
 
       <div class="portal-head">
-        <h1>Seus processos</h1>
-        <p>Panorama e determinações dos processos do seu cliente e de todos os clientes abaixo dele na hierarquia partidária.</p>
+        <h1>Painel</h1>
+        <p>Panorama de prestação de contas e determinações do seu cliente e de todos os clientes abaixo dele na hierarquia partidária.</p>
       </div>
 
       <div class="portal-stats">
         <div class="portal-stat">
-          <span class="num" data-stat="total">—</span>
-          <span class="label">Determinações no total</span>
-        </div>
-        <div class="portal-stat is-alert">
-          <span class="num" data-stat="pendentes">—</span>
-          <span class="label">Pendentes</span>
-        </div>
-        <div class="portal-stat is-alert">
-          <span class="num" data-stat="vencidas">—</span>
-          <span class="label">Com prazo vencido</span>
+          <span class="num" data-stat="pc-total">—</span>
+          <span class="label">Prestações de contas</span>
         </div>
         <div class="portal-stat">
-          <span class="num" data-stat="cumpridas">—</span>
-          <span class="label">Já cumpridas</span>
+          <span class="num" data-stat="pc-aprovadas">—</span>
+          <span class="label">Aprovadas</span>
+        </div>
+        <div class="portal-stat is-alert">
+          <span class="num" data-stat="pc-desaprovadas">—</span>
+          <span class="label">Desaprovadas</span>
+        </div>
+        <div class="portal-stat is-alert">
+          <span class="num" data-stat="pc-nao-prestadas">—</span>
+          <span class="label">Não prestadas</span>
+        </div>
+        <div class="portal-stat">
+          <span class="num" data-stat="processos-andamento">—</span>
+          <span class="label">Processos em andamento</span>
+        </div>
+        <div class="portal-stat is-alert">
+          <span class="num" data-stat="determinacoes-pendentes">—</span>
+          <span class="label">Determinações pendentes</span>
+        </div>
+        <div class="portal-stat is-alert">
+          <span class="num" data-stat="recolhimentos-pendentes">—</span>
+          <span class="label">Recolhimentos pendentes</span>
+        </div>
+        <div class="portal-stat is-alert">
+          <span class="num" data-stat="politica-mulher-pendentes">—</span>
+          <span class="label">Política da mulher pendentes</span>
+        </div>
+        <div class="portal-stat">
+          <span class="num" data-stat="valor-recolher">—</span>
+          <span class="label">Valor total a recolher</span>
+        </div>
+        <div class="portal-stat">
+          <span class="num" data-stat="valor-politica-mulher">—</span>
+          <span class="label">Valor total política da mulher</span>
         </div>
       </div>
 
-      <section class="portal-section" id="processos">
+      <div class="dashboard-layout">
+        <div>
+          <section class="portal-section" id="processos">
         <h2>Meus processos</h2>
         <p class="portal-section-desc">Todos os processos visíveis para o seu login, de qualquer categoria.</p>
 
@@ -69,9 +95,10 @@
                 <th>Ano</th>
                 <th>Status</th>
                 <th>Resultado</th>
+                <th>Responsável</th>
               </tr>
             </thead>
-            <tbody data-list="processos"><tr class="empty-row"><td colspan="5">Carregando…</td></tr></tbody>
+            <tbody data-list="processos"><tr class="empty-row"><td colspan="6">Carregando…</td></tr></tbody>
           </table>
         </div>
       </section>
@@ -115,6 +142,15 @@
           </table>
         </div>
       </section>
+        </div>
+
+        <aside>
+          <div class="sidebar-card">
+            <h3>Próximos vencimentos</h3>
+            <div data-proximos-vencimentos><span class="empty-note">Carregando…</span></div>
+          </div>
+        </aside>
+      </div>
 
     </main>
   </div>

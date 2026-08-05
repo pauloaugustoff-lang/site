@@ -28,6 +28,14 @@
   };
 
   var clienteId = new URLSearchParams(location.search).get("id");
+  var DIRETORIOS = ["diretorio_nacional", "diretorio_estadual", "diretorio_municipal"];
+
+  function clienteDepth(path) {
+    return path ? path.split(".").length - 1 : 0;
+  }
+  function linkProcesso(p) {
+    return p.numero_processo ? "processo.html?numero=" + encodeURIComponent(p.numero_processo) : "processo.html?id=" + p.id;
+  }
 
   function resultadoLabel(categoria, resultado) {
     if (!resultado) return "—";
@@ -98,6 +106,66 @@
     if (data.partidos) partes.push(data.partidos.sigla ? data.partidos.sigla + " — " + data.partidos.nome : data.partidos.nome);
     if ([data.uf, data.municipio].filter(Boolean).length) partes.push([data.uf, data.municipio].filter(Boolean).join(" / "));
     document.querySelector("[data-cliente-info]").textContent = partes.length ? partes.join(" · ") : "Cliente sem categoria definida";
+
+    preencherFormularioEdicao(data);
+  }
+
+  function atualizarCamposClienteEdicao() {
+    var tipo = document.getElementById("edit-tipo-cliente").value;
+    var ehDiretorio = DIRETORIOS.indexOf(tipo) !== -1;
+    var ehCandidato = tipo === "candidato";
+    var precisaUf = tipo === "diretorio_estadual" || tipo === "diretorio_municipal";
+    var precisaMunicipio = tipo === "diretorio_municipal";
+    var precisaPai = tipo === "diretorio_estadual" || tipo === "diretorio_municipal";
+
+    document.querySelectorAll("[data-campo-partido]").forEach(function (el) { el.hidden = !(ehDiretorio || ehCandidato); });
+    document.querySelectorAll("[data-campo-uf]").forEach(function (el) { el.hidden = !precisaUf; });
+    document.querySelectorAll("[data-campo-municipio]").forEach(function (el) { el.hidden = !precisaMunicipio; });
+    document.querySelectorAll("[data-campo-pai]").forEach(function (el) { el.hidden = !precisaPai; });
+    document.querySelectorAll("[data-campo-candidato]").forEach(function (el) { el.hidden = !ehCandidato; });
+  }
+
+  async function carregarAdvogados() {
+    var { data, error } = await bfSupabase
+      .from("perfis")
+      .select("id, nome")
+      .eq("role", "escritorio")
+      .order("nome");
+    if (error) { console.error(error); return; }
+    var options = (data || []).map(function (a) { return '<option value="' + a.id + '">' + a.nome + "</option>"; }).join("");
+    document.getElementById("proc-responsavel").innerHTML = '<option value="">— não atribuído —</option>' + options;
+  }
+
+  async function carregarPartidosParaEdicao() {
+    var { data, error } = await bfSupabase.from("partidos").select("*").order("sigla");
+    if (error) { console.error(error); return; }
+    var options = (data || []).map(function (p) { return '<option value="' + p.id + '">' + (p.sigla ? p.sigla + " — " + p.nome : p.nome) + "</option>"; }).join("");
+    document.getElementById("edit-partido").innerHTML = '<option value="">— não vinculado a partido —</option>' + options;
+  }
+
+  async function carregarClientesParaPai() {
+    var { data, error } = await bfSupabase.from("clientes").select("id, nome, path").order("path");
+    if (error) { console.error(error); return; }
+    var options = (data || [])
+      .filter(function (c) { return c.id !== clienteId; })
+      .map(function (c) {
+        var indent = "— ".repeat(clienteDepth(c.path));
+        return '<option value="' + c.id + '">' + indent + c.nome + "</option>";
+      }).join("");
+    document.getElementById("edit-pai").innerHTML = '<option value="">— selecione —</option>' + options;
+  }
+
+  function preencherFormularioEdicao(data) {
+    document.getElementById("edit-nome").value = data.nome || "";
+    document.getElementById("edit-documento").value = data.documento || "";
+    document.getElementById("edit-tipo-cliente").value = data.tipo_cliente;
+    document.getElementById("edit-partido").value = data.partido_id || "";
+    document.getElementById("edit-uf").value = data.uf || "";
+    document.getElementById("edit-municipio").value = data.municipio || "";
+    document.getElementById("edit-pai").value = data.parent_id || "";
+    document.getElementById("edit-cargo").value = data.cargo_disputado || "";
+    document.getElementById("edit-ano-eleicao").value = data.ano_eleicao || "";
+    atualizarCamposClienteEdicao();
   }
 
   var processosCache = [];
@@ -114,7 +182,8 @@
       chips.push('<span class="chip">' + LABELS.status[p.status] + "</span>");
       var resultado = resultadoLabel(p.categoria, p.resultado);
       if (resultado !== "—") chips.push('<span class="chip is-slate">' + resultado + "</span>");
-      return '<a class="case-row" href="processo.html?id=' + p.id + '">' +
+      chips.push('<span class="chip">' + (p.perfis ? p.perfis.nome : "Sem advogado") + "</span>");
+      return '<a class="case-row" href="' + linkProcesso(p) + '">' +
         '<div class="case-row-top">' +
           '<span class="case-row-title">' + titulo + "</span>" +
           '<span class="case-row-date">' + (p.numero_processo || "") + "</span>" +
@@ -148,10 +217,15 @@
   async function carregarProcessos() {
     var { data, error } = await bfSupabase
       .from("processos")
-      .select("*")
+      .select("*, perfis(nome)")
       .eq("cliente_id", clienteId)
       .order("ano", { ascending: false });
-    if (error) { console.error(error); return; }
+    if (error) {
+      console.error(error);
+      document.querySelector('[data-list="processos"]').innerHTML =
+        '<span class="empty-note">Não foi possível carregar os processos: ' + error.message + "</span>";
+      return;
+    }
     processosCache = data || [];
     aplicarFiltroProcessos();
   }
@@ -160,9 +234,38 @@
     document.getElementById("proc-categoria").addEventListener("change", atualizarCampoResultado);
     atualizarCampoResultado();
 
+    document.getElementById("edit-tipo-cliente").addEventListener("change", atualizarCamposClienteEdicao);
+
     document.querySelector("[data-toggle-novo-processo]").addEventListener("click", function () {
       var box = document.querySelector("[data-novo-processo-box]");
       box.hidden = !box.hidden;
+    });
+
+    document.querySelector("[data-toggle-editar-cliente]").addEventListener("click", function () {
+      var box = document.querySelector("[data-editar-cliente-box]");
+      box.hidden = !box.hidden;
+    });
+
+    bindForm("cliente-editar", async function () {
+      var tipo = document.getElementById("edit-tipo-cliente").value;
+      var ehDiretorio = DIRETORIOS.indexOf(tipo) !== -1;
+      var ehCandidato = tipo === "candidato";
+      var payload = {
+        nome: val("edit-nome"),
+        documento: val("edit-documento"),
+        tipo_cliente: tipo,
+        partido_id: (ehDiretorio || ehCandidato) ? val("edit-partido") : null,
+        uf: (tipo === "diretorio_estadual" || tipo === "diretorio_municipal") ? val("edit-uf") : null,
+        municipio: tipo === "diretorio_municipal" ? val("edit-municipio") : null,
+        parent_id: (tipo === "diretorio_estadual" || tipo === "diretorio_municipal") ? val("edit-pai") : null,
+        cargo_disputado: ehCandidato ? val("edit-cargo") : null,
+        ano_eleicao: ehCandidato && val("edit-ano-eleicao") ? Number(val("edit-ano-eleicao")) : null,
+      };
+      if (!payload.nome) throw new Error("preencha o nome do cliente");
+      var { error } = await bfSupabase.from("clientes").update(payload).eq("id", clienteId);
+      if (error) throw error;
+      await carregarCliente();
+      document.querySelector("[data-editar-cliente-box]").hidden = true;
     });
 
     document.getElementById("busca-processo").addEventListener("input", aplicarFiltroProcessos);
@@ -184,12 +287,13 @@
         resultado: resultado,
         data_decisao: val("proc-data-decisao"),
         data_protocolo: val("proc-data-protocolo"),
-        responsavel: val("proc-responsavel"),
+        responsavel_id: val("proc-responsavel"),
         houve_recurso: categoria === "prestacao_contas" ? boolVal("proc-houve-recurso") : null,
         transito_julgado: categoria === "prestacao_contas" ? boolVal("proc-transito-julgado") : null,
         data_transito: categoria === "prestacao_contas" ? val("proc-data-transito") : null,
       };
       if (!payload.categoria) throw new Error("selecione a categoria");
+      if (!payload.numero_processo) throw new Error("preencha o número do processo");
       var { error } = await bfSupabase.from("processos").insert(payload);
       if (error) throw error;
       await carregarProcessos();
@@ -251,6 +355,9 @@
       bfLogout("../login.html");
     });
 
+    await carregarAdvogados();
+    await carregarPartidosParaEdicao();
+    await carregarClientesParaPai();
     await carregarCliente();
     await carregarProcessos();
     iniciarFormularios();

@@ -9,7 +9,11 @@
 -- aditivos em cima do que já existe, sem apagar nada.
 -- =============================================================
 
+drop policy if exists "documentos_storage_select" on storage.objects;
+drop policy if exists "documentos_storage_write" on storage.objects;
+drop policy if exists "documentos_storage_delete" on storage.objects;
 drop table if exists auditoria cascade;
+drop table if exists documentos cascade;
 drop table if exists perfil_escopos cascade;
 drop table if exists determinacoes cascade;
 drop table if exists obrigacoes cascade;
@@ -112,7 +116,9 @@ create table processos (
   ),
   subcategoria text, -- texto livre, ex: "Anual" / "Eleitoral" quando categoria = prestacao_contas
   titulo text,
-  numero_processo text,
+  -- todo processo tem número, e ele agora também identifica a URL da
+  -- tela do processo — precisa ser único, senão duas URLs colidiriam
+  numero_processo text not null unique,
   ano int,
   orgao_julgador text, -- ex: "TSE" ou "TRE-BA"
   foro text,
@@ -131,7 +137,9 @@ create table processos (
   houve_recurso boolean,
   transito_julgado boolean,
   data_transito date,
-  responsavel text, -- advogado responsável (texto livre por enquanto)
+  -- responsavel_id (advogado responsável) é adicionado via alter table mais
+  -- abaixo, depois que a tabela perfis existir — processos é criada antes
+  -- de perfis nesta ordem de script
   observacoes text,
   created_at timestamptz not null default now()
 );
@@ -155,7 +163,9 @@ create table determinacoes (
   prazo date,
   status text not null default 'pendente' check (status in ('pendente', 'cumprida')),
   data_cumprimento date,
-  responsavel text,
+  -- responsavel_id (quem cuida do cumprimento desta determinação — pode
+  -- ser diferente do advogado responsável pelo processo) é adicionado via
+  -- alter table mais abaixo, depois que perfis existir
   data_transito_julgado date,
   observacoes text,
   created_at timestamptz not null default now()
@@ -171,11 +181,19 @@ create table perfis (
   id uuid primary key references auth.users(id) on delete cascade,
   cliente_id uuid references clientes(id), -- null se for da equipe do escritório
   nome text not null,
+  email text, -- cópia do e-mail de auth.users, só para exibição nas telas
   role text not null check (role in ('cliente', 'escritorio')),
   -- escopo primário: o que aquele login vê a partir do cliente_id acima
   escopo text not null default 'total' check (escopo in ('total', 'prestacao_contas')),
   created_at timestamptz not null default now()
 );
+
+-- só agora que perfis existe: advogado responsável pelo processo, e quem
+-- cuida do cumprimento de cada determinação (papéis independentes)
+alter table processos add column responsavel_id uuid references perfis(id);
+alter table determinacoes add column responsavel_id uuid references perfis(id);
+create index idx_processos_responsavel on processos (responsavel_id);
+create index idx_determinacoes_responsavel on determinacoes (responsavel_id);
 
 -- -------------------------------------------------------------
 -- 6. PERFIL_ESCOPOS (escopos adicionais por login — permite um mesmo
@@ -195,6 +213,26 @@ create table perfil_escopos (
 
 create index idx_perfil_escopos_perfil on perfil_escopos (perfil_id);
 create index idx_perfil_escopos_cliente on perfil_escopos (cliente_id);
+
+-- -------------------------------------------------------------
+-- 7. DOCUMENTOS (metadados dos arquivos anexados a um processo,
+--    opcionalmente vinculados a uma determinação específica —
+--    o arquivo em si fica no Storage, bucket "documentos")
+-- -------------------------------------------------------------
+create table documentos (
+  id uuid primary key default gen_random_uuid(),
+  processo_id uuid not null references processos(id) on delete cascade,
+  determinacao_id uuid references determinacoes(id) on delete set null,
+  nome_arquivo text not null,
+  storage_path text not null, -- caminho dentro do bucket, começa com processo_id/
+  tamanho bigint,
+  tipo_mime text,
+  enviado_por uuid references perfis(id),
+  created_at timestamptz not null default now()
+);
+
+create index idx_documentos_processo on documentos (processo_id);
+create index idx_documentos_determinacao on documentos (determinacao_id);
 
 -- =============================================================
 -- FUNÇÕES AUXILIARES DE ACESSO (security definer: leem sem
@@ -249,12 +287,13 @@ alter table processos enable row level security;
 alter table determinacoes enable row level security;
 alter table perfis enable row level security;
 alter table perfil_escopos enable row level security;
+alter table documentos enable row level security;
 
 -- só usuários autenticados têm qualquer acesso (defesa extra, além da RLS)
 revoke all on all tables in schema public from anon;
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on
-  partidos, clientes, processos, determinacoes, perfis, perfil_escopos
+  partidos, clientes, processos, determinacoes, perfis, perfil_escopos, documentos
   to authenticated;
 
 -- --- partidos: qualquer logado lê; só escritório escreve ---
@@ -290,6 +329,11 @@ create policy "determinacoes_write" on determinacoes for all
 -- --- perfis: cada um vê o próprio; escritório vê/gerencia todos ---
 create policy "perfis_select" on perfis for select
   using (id = auth.uid() or is_escritorio());
+-- qualquer logado pode ver perfis de escritório (nome do advogado
+-- responsável precisa aparecer no painel do cliente); perfis de outros
+-- clientes continuam invisíveis, cobertos só pela política acima
+create policy "perfis_select_escritorio_publico" on perfis for select
+  using (role = 'escritorio');
 create policy "perfis_write" on perfis for all
   using (is_escritorio()) with check (is_escritorio());
 
@@ -299,8 +343,44 @@ create policy "perfil_escopos_select" on perfil_escopos for select
 create policy "perfil_escopos_write" on perfil_escopos for all
   using (is_escritorio()) with check (is_escritorio());
 
+-- --- documentos: mesma visibilidade do processo; só escritório escreve ---
+create policy "documentos_select" on documentos for select
+  using (
+    exists (
+      select 1 from processos pr
+      where pr.id = documentos.processo_id
+        and tenho_acesso(pr.cliente_id, pr.categoria)
+    )
+  );
+create policy "documentos_write" on documentos for all
+  using (is_escritorio()) with check (is_escritorio());
+
 -- =============================================================
--- 7. AUDITORIA (histórico de alterações — quem, quando, o que mudou)
+-- BUCKET DE ARMAZENAMENTO (arquivos anexados aos processos)
+-- =============================================================
+insert into storage.buckets (id, name, public)
+values ('documentos', 'documentos', false)
+on conflict (id) do nothing;
+
+-- o caminho do arquivo começa com o id do processo (ex:
+-- "3f2a.../2024-peticao.pdf"), então a mesma regra de acesso
+-- (tenho_acesso) vale para leitura; só escritório escreve/apaga
+create policy "documentos_storage_select" on storage.objects for select
+  using (
+    bucket_id = 'documentos'
+    and exists (
+      select 1 from processos pr
+      where pr.id::text = (storage.foldername(name))[1]
+        and tenho_acesso(pr.cliente_id, pr.categoria)
+    )
+  );
+create policy "documentos_storage_write" on storage.objects for insert
+  with check (bucket_id = 'documentos' and is_escritorio());
+create policy "documentos_storage_delete" on storage.objects for delete
+  using (bucket_id = 'documentos' and is_escritorio());
+
+-- =============================================================
+-- 8. AUDITORIA (histórico de alterações — quem, quando, o que mudou)
 -- =============================================================
 create table auditoria (
   id uuid primary key default gen_random_uuid(),

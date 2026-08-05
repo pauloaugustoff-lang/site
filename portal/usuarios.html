@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Usuários — Bessoni &amp; Fortes</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="../assets/img/bf-mark-navy.png">
+<link rel="stylesheet" href="../css/style.css?v=17">
+</head>
+<body>
+
+<div class="portal-shell">
+  <aside class="portal-sidebar">
+    <a class="portal-brand" href="../index.html" aria-label="Bessoni & Fortes">
+      <img src="../assets/img/logo-wordmark-white.png" alt="Bessoni & Fortes">
+    </a>
+
+    <nav class="portal-nav">
+      <a class="portal-nav-link" href="admin.html">Painel</a>
+      <a class="portal-nav-link" href="clientes.html">Cliente</a>
+      <a class="portal-nav-link" href="cadastro-de-cliente.html">Cadastro</a>
+      <a class="portal-nav-link is-active" href="usuarios.html">Usuários</a>
+      <a class="portal-nav-link" href="auditoria.html">Auditoria</a>
+    </nav>
+
+    <div class="portal-sidebar-foot">
+      <div class="portal-who">
+        <span data-user-nome>—</span>
+        <span class="tag">Escritório</span>
+      </div>
+      <button class="portal-logout" type="button" data-logout>Sair</button>
+    </div>
+  </aside>
+
+  <div class="portal-content">
+    <main class="portal-main">
+
+      <div class="portal-head">
+        <h1>Usuários</h1>
+        <p>Todos os logins do sistema — clientes e equipe do escritório — e os escopos de acesso de cada um.</p>
+      </div>
+
+      <section class="portal-section">
+        <h2>1 · Novo usuário do escritório</h2>
+        <p class="portal-section-desc">Acesso interno da equipe (sócio, advogado, estagiário...). Por padrão enxerga tudo, igual ao seu — se precisar restringir, gerencie o escopo dele na lista abaixo depois de criado.</p>
+
+        <form class="form-grid" id="form-usuario-escritorio" data-form="usuario-escritorio" autocomplete="off">
+          <div class="field">
+            <label for="ue-nome">Nome</label>
+            <input type="text" id="ue-nome" required placeholder="Nome completo" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="ue-email">E-mail</label>
+            <input type="email" id="ue-email" required placeholder="email@exemplo.com.br">
+          </div>
+        </form>
+        <div class="portal-form-actions">
+          <button class="btn btn-ghost-light" type="submit" form="form-usuario-escritorio">Criar acesso</button>
+          <span class="portal-inline-msg" data-msg="usuario-escritorio"></span>
+        </div>
+
+        <div class="credential-box" data-credential-box>
+          <p>Acesso criado. Copie a senha agora — ela não aparece de novo.</p>
+          <div class="credential-row">
+            <span class="k">E-mail</span>
+            <span class="v" data-cred-email></span>
+          </div>
+          <div class="credential-row">
+            <span class="k">Senha</span>
+            <span class="v" data-cred-senha></span>
+            <button type="button" data-copy-senha>Copiar senha</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="portal-section">
+        <h2>2 · Usuários</h2>
+        <p class="portal-section-desc">Clique em "Gerenciar escopos" para dar a um login acesso adicional a outros clientes, além do vínculo principal dele.</p>
+
+        <div class="table-wrap">
+          <table class="portal-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>Papel</th>
+                <th>Cliente vinculado</th>
+                <th>Escopo primário</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody data-list="usuarios"><tr class="empty-row"><td colspan="6">Carregando…</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="portal-section" data-secao-escopos hidden>
+        <h2>Escopos adicionais — <span data-escopos-usuario-nome></span></h2>
+        <p class="portal-section-desc">Além do vínculo principal (tabela acima), esse login também enxerga os clientes listados aqui.</p>
+
+        <div data-lista-escopos><span class="empty-note">Carregando…</span></div>
+
+        <form class="form-grid" id="form-novo-escopo" data-form="novo-escopo" style="margin-top: 1.4rem;">
+          <div class="field">
+            <label for="escopo-cliente">Cliente</label>
+            <select id="escopo-cliente"><option value="">— selecione —</option></select>
+          </div>
+          <div class="field">
+            <label for="escopo-nivel">Nível de acesso</label>
+            <select id="escopo-nivel">
+              <option value="total">Total</option>
+              <option value="prestacao_contas">Só prestação de contas</option>
+              <option value="leitura">Só leitura</option>
+            </select>
+          </div>
+        </form>
+        <div class="portal-form-actions">
+          <button class="btn btn-ghost-light" type="submit" form="form-novo-escopo">Adicionar escopo</button>
+          <span class="portal-inline-msg" data-msg="novo-escopo"></span>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase-config.js"></script>
+<script src="../js/auth.js"></script>
+<script src="usuarios.js"></script>
+</body>
+</html>
