@@ -26,7 +26,10 @@
     "nivel": "tipoCliente", // alias antigo (modelo pré-v3)
     "uf": "uf",
     "municipio": "municipio",
-    "cliente superior": "clienteSuperior",
+    "cargo pretendido": "cargoPretendido",
+    "cargo": "cargoPretendido",
+    "ano da eleicao": "anoEleicao",
+    "ano eleicao": "anoEleicao",
     "processo n": "numeroProcesso",
     "processo": "numeroProcesso",
     "no do processo": "numeroProcesso",
@@ -214,7 +217,8 @@
         tipoCliente: texto(pega(linha, "tipoCliente")),
         uf: texto(pega(linha, "uf")),
         municipio: texto(pega(linha, "municipio")),
-        clienteSuperior: texto(pega(linha, "clienteSuperior")),
+        cargoPretendido: texto(pega(linha, "cargoPretendido")),
+        anoEleicao: parseInteiro(pega(linha, "anoEleicao")),
         numeroProcesso: texto(pega(linha, "numeroProcesso")),
         categoria: texto(pega(linha, "categoria")),
         subcategoria: texto(pega(linha, "subcategoria")),
@@ -242,6 +246,21 @@
   // -----------------------------------------------------------
   var linhasParaImportar = [];
 
+  // Só pra exibição — não toca no banco. Mesma regra de nome usada na
+  // importação de verdade (BF.gerarNomeCliente), calculada aqui em cima
+  // do texto puro da planilha (o nome oficial do partido, se ele já
+  // existir com grafia diferente, é resolvido só na hora de importar).
+  function nomeParaPreview(l) {
+    if (l.nomeCliente) return l.nomeCliente;
+    var tipo = mapear(l.tipoCliente, TIPO_CLIENTE_MAP, null);
+    if (tipo && l.nomePartido) {
+      var uf = l.uf ? l.uf.trim().toUpperCase() : null;
+      var gerado = BF.gerarNomeCliente(l.nomePartido, tipo, uf, l.municipio);
+      if (gerado) return gerado + " (gerado automaticamente)";
+    }
+    return "—";
+  }
+
   function renderPreview(linhas) {
     document.querySelector("[data-preview-resumo]").textContent =
       linhas.length + " linha(s) reconhecida(s). Mostrando as primeiras 15 abaixo.";
@@ -249,7 +268,7 @@
     var tbody = document.querySelector("[data-preview-linhas]");
     tbody.innerHTML = linhas.slice(0, 15).map(function (l) {
       return "<tr>" +
-        "<td>" + (l.nomeCliente || "—") + "</td>" +
+        "<td>" + nomeParaPreview(l) + "</td>" +
         "<td>" + (l.nomePartido || "—") + "</td>" +
         "<td>" + (l.categoria || "—") + "</td>" +
         "<td>" + (l.ano || "—") + "</td>" +
@@ -287,72 +306,100 @@
     var chave = normalizar(nome);
     if (caches.partidos.has(chave)) return caches.partidos.get(chave);
 
-    var existente = await bfSupabase.from("partidos").select("id").ilike("nome", nome).limit(1).maybeSingle();
+    var existente = await bfSupabase.from("partidos").select("id, nome").ilike("nome", nome).limit(1).maybeSingle();
     if (existente.data) {
-      caches.partidos.set(chave, existente.data.id);
-      return existente.data.id;
+      caches.partidos.set(chave, existente.data);
+      return existente.data;
     }
 
-    var criado = await bfSupabase.from("partidos").insert({ nome: nome }).select("id").single();
+    var criado = await bfSupabase.from("partidos").insert({ nome: nome }).select("id, nome").single();
     if (criado.error) {
       avisos.push("Linha " + numeroLinha + ": erro ao criar partido '" + nome + "' — " + criado.error.message);
       return null;
     }
-    caches.partidos.set(chave, criado.data.id);
+    caches.partidos.set(chave, criado.data);
     caches.partidosCriados++;
-    return criado.data.id;
+    return criado.data;
   }
 
-  async function resolverCliente(l, partidoId, caches, avisos) {
-    var chaveBusca = l.documento ? "doc:" + normalizar(l.documento) : "nome:" + normalizar(l.nomeCliente);
-    if (caches.clientes.has(chaveBusca)) return caches.clientes.get(chaveBusca);
-
-    var query = bfSupabase.from("clientes").select("id").limit(1);
-    query = l.documento ? query.eq("documento", l.documento) : query.ilike("nome", l.nomeCliente);
-    var existente = await query.maybeSingle();
-    if (existente.data) {
-      caches.clientes.set(chaveBusca, existente.data.id);
-      return existente.data.id;
-    }
-
-    var parentId = null;
-    if (l.clienteSuperior) {
-      var chavePai = "nome:" + normalizar(l.clienteSuperior);
-      if (caches.clientes.has(chavePai)) {
-        parentId = caches.clientes.get(chavePai);
-      } else {
-        var pai = await bfSupabase.from("clientes").select("id").ilike("nome", l.clienteSuperior).maybeSingle();
-        if (pai.data) {
-          parentId = pai.data.id;
-          caches.clientes.set(chavePai, pai.data.id);
-        } else {
-          avisos.push("Linha " + l.numeroLinha + ": cliente superior '" + l.clienteSuperior + "' não encontrado (ainda) — criado sem hierarquia.");
-        }
-      }
-    }
+  // partido: objeto {id, nome} resolvido por resolverPartido, ou null
+  async function resolverCliente(l, partido, caches, avisos) {
+    var partidoId = partido ? partido.id : null;
 
     var tipoCliente = mapear(l.tipoCliente, TIPO_CLIENTE_MAP, null);
     if (l.tipoCliente && !tipoCliente) {
       avisos.push("Linha " + l.numeroLinha + ": tipo de cliente '" + l.tipoCliente + "' não reconhecido — inferido automaticamente pelo documento.");
     }
     if (!tipoCliente) tipoCliente = inferirTipoClientePorDocumento(l.documento);
+    var ehDiretorio = tipoCliente === "diretorio_nacional" || tipoCliente === "diretorio_estadual" || tipoCliente === "diretorio_municipal";
+
+    var uf = l.uf ? l.uf.trim().toUpperCase() : null;
+    if (uf && !BF.UF_LISTA.some(function (u) { return u.sigla === uf; })) {
+      avisos.push("Linha " + l.numeroLinha + ": UF '" + l.uf + "' não reconhecida — usada mesmo assim como digitada.");
+    }
+
+    // Diretório: nome do cliente é sempre gerado automaticamente (mesma
+    // regra do cadastro manual), nunca lido da planilha.
+    var nomeCliente = l.nomeCliente;
+    if (ehDiretorio) {
+      if (!partido) {
+        avisos.push("Linha " + l.numeroLinha + ": diretório sem Nome do Partido — linha ignorada.");
+        return null;
+      }
+      nomeCliente = BF.gerarNomeCliente(partido.nome, tipoCliente, uf, l.municipio);
+      if (!nomeCliente) {
+        avisos.push("Linha " + l.numeroLinha + ": não foi possível gerar o nome do cliente (confira Instância/UF/Município) — linha ignorada.");
+        return null;
+      }
+    }
+    if (!nomeCliente) {
+      avisos.push("Linha " + l.numeroLinha + ": sem Nome do Cliente — linha ignorada.");
+      return null;
+    }
+
+    var chaveBusca = l.documento ? "doc:" + normalizar(l.documento) : "nome:" + normalizar(nomeCliente);
+    if (caches.clientes.has(chaveBusca)) return caches.clientes.get(chaveBusca);
+
+    var query = bfSupabase.from("clientes").select("id").limit(1);
+    query = l.documento ? query.eq("documento", l.documento) : query.ilike("nome", nomeCliente);
+    var existente = await query.maybeSingle();
+    if (existente.data) {
+      caches.clientes.set(chaveBusca, existente.data.id);
+      return existente.data.id;
+    }
+
+    // Hierarquia: acha sozinho a instância imediatamente superior do
+    // mesmo partido (nacional p/ estadual; estadual da mesma UF p/
+    // municipal) — inclusive entre linhas já criadas nesta mesma
+    // importação, já que cada linha é processada e salva em sequência.
+    var parentId = null;
+    if (ehDiretorio && tipoCliente !== "diretorio_nacional") {
+      var superior = await BF.encontrarSuperior(tipoCliente, partidoId, uf);
+      if (superior) {
+        parentId = superior.id;
+      } else {
+        avisos.push("Linha " + l.numeroLinha + ": instância superior ainda não encontrada para '" + nomeCliente + "' — criado sem hierarquia (dá pra ligar depois pela tela).");
+      }
+    }
 
     var payload = {
-      nome: l.nomeCliente,
+      nome: nomeCliente,
       documento: l.documento,
       partido_id: partidoId,
       tipo_cliente: tipoCliente,
-      uf: l.uf,
+      uf: uf,
       municipio: l.municipio,
       parent_id: parentId,
+      cargo_disputado: tipoCliente === "candidato" ? l.cargoPretendido : null,
+      ano_eleicao: tipoCliente === "candidato" ? l.anoEleicao : null,
     };
     var criado = await bfSupabase.from("clientes").insert(payload).select("id").single();
     if (criado.error) {
-      avisos.push("Linha " + l.numeroLinha + ": erro ao criar cliente '" + l.nomeCliente + "' — " + criado.error.message);
+      avisos.push("Linha " + l.numeroLinha + ": erro ao criar cliente '" + nomeCliente + "' — " + criado.error.message);
       return null;
     }
     caches.clientes.set(chaveBusca, criado.data.id);
-    caches.clientes.set("nome:" + normalizar(l.nomeCliente), criado.data.id);
+    caches.clientes.set("nome:" + normalizar(nomeCliente), criado.data.id);
     caches.clientesCriados++;
     return criado.data.id;
   }
@@ -433,10 +480,6 @@
 
     for (var i = 0; i < linhas.length; i++) {
       var l = linhas[i];
-      if (!l.nomeCliente) {
-        avisos.push("Linha " + l.numeroLinha + ": sem Nome do Cliente, linha ignorada.");
-        continue;
-      }
       if (!l.categoria) {
         avisos.push("Linha " + l.numeroLinha + ": sem Categoria, linha ignorada.");
         continue;
@@ -479,8 +522,8 @@
         resultado = l.resultado; // sem lista fechada do sistema para as outras categorias
       }
 
-      var partidoId = await resolverPartido(l.nomePartido, caches, avisos, l.numeroLinha);
-      var clienteId = await resolverCliente(l, partidoId, caches, avisos);
+      var partido = await resolverPartido(l.nomePartido, caches, avisos, l.numeroLinha);
+      var clienteId = await resolverCliente(l, partido, caches, avisos);
       if (!clienteId) continue;
 
       var responsavelProcessoId = resolverResponsavel(l.responsavelProcesso, advogadosMap, avisos, l.numeroLinha, "Advogado responsável");
@@ -535,20 +578,25 @@
 
   function baixarModelo() {
     var cabecalho = [
-      "Nome do Cliente", "Nome do Partido", "Instância Partidária", "UF", "Município", "Cliente Superior",
+      "Nome do Cliente", "Nome do Partido", "Instância Partidária", "UF", "Município", "Cargo Pretendido", "Ano da Eleição",
       "Categoria", "Subcategoria", "Título", "Ano", "Processo (nº)", "Órgão Julgador", "Status", "Resultado",
       "Houve recurso?", "Trânsito em julgado?", "Data do trânsito em julgado", "Advogado Responsável",
     ];
     var linhas = [
       cabecalho,
       [
-        "Diretório Nacional", "Partido Exemplo", "Nacional", "", "", "",
+        "", "Partido Exemplo", "Nacional", "", "", "", "",
         "Prestação de Contas", "Anual", "Prestação de contas 2020", 2020, "0000000-00.2020.6.00.0000", "TSE", "Concluído", "Não prestadas",
         "Não", "Sim", new Date(2021, 8, 10), "Paulo Fortes",
       ],
       [
-        "Diretório Estadual da Bahia", "Partido Exemplo", "Estadual", "BA", "", "Diretório Nacional",
+        "", "Partido Exemplo", "Estadual", "BA", "", "", "",
         "AIJE", "", "Investigação judicial eleitoral", 2022, "0000001-11.2022.6.05.0000", "TRE-BA", "Em andamento", "",
+        "", "", "", "Paulo Fortes",
+      ],
+      [
+        "Maria da Silva", "Partido Exemplo", "Candidato", "BA", "Salvador", "Prefeito", 2024,
+        "Registro de Candidatura", "", "RCAND 2024", 2024, "0000002-22.2024.6.05.0000", "TRE-BA", "Em andamento", "",
         "", "", "", "Paulo Fortes",
       ],
     ];
