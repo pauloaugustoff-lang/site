@@ -24,14 +24,16 @@
   var usuarioSelecionadoId = null;
   var usuariosCache = [];
   var clientesCache = [];
+  var meuPerfilId = null;
 
   function renderUsuarios() {
     var tbody = document.querySelector('[data-list="usuarios"]');
     if (!usuariosCache.length) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Nenhum usuário encontrado.</td></tr>';
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="7">Nenhum usuário encontrado.</td></tr>';
       return;
     }
     tbody.innerHTML = usuariosCache.map(function (u) {
+      var souEu = u.id === meuPerfilId;
       return "<tr>" +
         "<td>" + u.nome + "</td>" +
         "<td>" + (u.email || "—") + "</td>" +
@@ -39,6 +41,10 @@
         "<td>" + (u.clientes ? u.clientes.nome : "—") + "</td>" +
         "<td>" + (LABELS.escopo[u.escopo] || u.escopo) + "</td>" +
         '<td><button type="button" class="portal-inline-link" data-gerenciar-escopos="' + u.id + '">Gerenciar escopos</button></td>' +
+        '<td>' + (souEu
+          ? '<span class="empty-note">você</span>'
+          : '<button type="button" class="portal-inline-link" data-excluir-usuario="' + u.id + '" style="color:#8a3b1f;">Excluir</button>') +
+        "</td>" +
       "</tr>";
     }).join("");
   }
@@ -51,7 +57,7 @@
     if (error) {
       console.error(error);
       document.querySelector('[data-list="usuarios"]').innerHTML =
-        '<tr class="empty-row"><td colspan="6">Não foi possível carregar os usuários agora.</td></tr>';
+        '<tr class="empty-row"><td colspan="7">Não foi possível carregar os usuários agora.</td></tr>';
       return;
     }
     usuariosCache = data || [];
@@ -116,11 +122,49 @@
   }
 
   function iniciar() {
-    document.querySelector('[data-list="usuarios"]').addEventListener("click", function (e) {
-      var id = e.target.getAttribute("data-gerenciar-escopos");
-      if (!id) return;
-      var usuario = usuariosCache.find(function (u) { return u.id === id; });
-      if (usuario) abrirEscopos(usuario);
+    document.querySelector('[data-list="usuarios"]').addEventListener("click", async function (e) {
+      var idEscopos = e.target.getAttribute("data-gerenciar-escopos");
+      if (idEscopos) {
+        var usuario = usuariosCache.find(function (u) { return u.id === idEscopos; });
+        if (usuario) abrirEscopos(usuario);
+        return;
+      }
+
+      var idExcluir = e.target.getAttribute("data-excluir-usuario");
+      if (idExcluir) {
+        var alvo = usuariosCache.find(function (u) { return u.id === idExcluir; });
+        var ok = await BF.confirmar(
+          "Isso exclui o login de " + (alvo ? alvo.nome : "este usuário") + " — ele não vai mais conseguir acessar o sistema. Não é possível desfazer.",
+          { titulo: "Excluir usuário?", textoConfirmar: "Excluir usuário" }
+        );
+        if (!ok) return;
+
+        setMsg("excluir-usuario", "Excluindo…", false);
+        try {
+          var { data: { session } } = await bfSupabase.auth.getSession();
+          var resp = await fetch(SUPABASE_URL + "/functions/v1/excluir-usuario", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer " + session.access_token,
+              "apikey": SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({ perfil_id: idExcluir }),
+          });
+          var result = await resp.json();
+          if (!resp.ok) throw new Error(result.error || "não foi possível excluir o usuário");
+
+          if (usuarioSelecionadoId === idExcluir) {
+            document.querySelector("[data-secao-escopos]").hidden = true;
+            usuarioSelecionadoId = null;
+          }
+          setMsg("excluir-usuario", "Usuário excluído.", false);
+          await carregarUsuarios();
+        } catch (err) {
+          console.error(err);
+          setMsg("excluir-usuario", "Erro ao excluir: " + err.message, true);
+        }
+      }
     });
 
     document.querySelector("[data-lista-escopos]").addEventListener("click", async function (e) {
@@ -197,6 +241,7 @@
       bfLogout("../login.html");
     });
 
+    meuPerfilId = session.user.id;
     iniciar();
     await carregarUsuarios();
     await carregarClientesParaSelect();
