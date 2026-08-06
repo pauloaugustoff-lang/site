@@ -6,7 +6,7 @@
 <title>Importar planilha — Bessoni &amp; Fortes</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/png" href="../assets/img/bf-mark-navy.png">
-<link rel="stylesheet" href="../css/style.css?v=21">
+<link rel="stylesheet" href="../css/style.css?v=22">
 </head>
 <body>
 
@@ -46,21 +46,25 @@
       <section class="portal-section">
         <h2>1 · Colunas esperadas</h2>
         <p class="portal-section-desc">
-          Nome do Cliente · Nome do Partido · Instância Partidária · UF · Município · Cliente Superior ·
+          Nome do Cliente · Nome do Partido · Instância Partidária · UF · Município · Cargo Pretendido · Ano da Eleição ·
           Categoria · Subcategoria · Título · Ano · Processo (nº) · Órgão Julgador · Status · Resultado ·
           Houve recurso? · Trânsito em julgado? · Data do trânsito em julgado · Advogado Responsável
         </p>
         <p class="portal-section-desc">
-          <strong>Nome do Cliente</strong>, <strong>Categoria</strong> e <strong>Processo (nº)</strong> são
-          obrigatórios — todo processo precisa de número, e ele também identifica a URL da tela do processo, por
-          isso precisa ser único (não pode repetir entre processos diferentes). "Cliente Superior" deve
-          bater exatamente com o Nome do Cliente de outra linha (ex: o Diretório Nacional precisa aparecer numa
-          linha antes dos Diretórios Estaduais que o referenciam). "Advogado Responsável" precisa bater com o nome
-          de um usuário já cadastrado em <a href="usuarios.html">Usuários</a> — se não encontrar, a linha é
-          importada mesmo assim, só fica sem responsável (avisa no relatório final). Esta planilha não importa
-          determinações — cadastre-as direto na tela do processo depois de importar. Todo o resto que tem lista
-          abaixo precisa vir <strong>exatamente</strong> como está escrito (linha com valor errado não é
-          importada, e aparece no relatório de avisos no final):
+          <strong>Categoria</strong> e <strong>Processo (nº)</strong> são obrigatórios — todo processo precisa de
+          número, e ele também identifica a URL da tela do processo, por isso precisa ser único (não pode repetir
+          entre processos diferentes). <strong>Nome do Cliente</strong> só é obrigatório para Candidato / Pessoa
+          Física / Pessoa Jurídica — para Diretório (Nacional/Estadual/Municipal) o nome é <strong>gerado
+          automaticamente</strong> a partir do Nome do Partido + Instância + UF/Município, do mesmo jeito que no
+          cadastro manual (não precisa preencher, e se preencher é ignorado). A instância superior de cada
+          diretório também é encontrada sozinha (Nacional do mesmo partido, ou Estadual da mesma UF) — não existe
+          mais coluna de "Cliente Superior"; se ainda não existir, a linha é importada sem hierarquia e você liga
+          depois pela tela. "Cargo Pretendido" e "Ano da Eleição" só valem para Candidato. "Advogado Responsável"
+          precisa bater com o nome de um usuário já cadastrado em <a href="usuarios.html">Usuários</a> — se não
+          encontrar, a linha é importada mesmo assim, só fica sem responsável (avisa no relatório final). Esta
+          planilha não importa determinações — cadastre-as direto na tela do processo depois de importar. Todo o
+          resto que tem lista abaixo precisa vir <strong>exatamente</strong> como está escrito (linha com valor
+          errado não é importada, e aparece no relatório de avisos no final):
         </p>
         <p class="portal-section-desc">
           <strong>Categoria:</strong> Prestação de Contas · AIJE · Representação · Registro de Candidatura · DRAP · Outro<br>
@@ -122,6 +126,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../js/supabase-config.js"></script>
 <script src="../js/auth.js"></script>
+<script src="../js/cliente-form.js"></script>
 <script src="importar.js"></script>
 </body>
 </html>
