@@ -1,11 +1,15 @@
 (function () {
   "use strict";
 
-  var DIRETORIOS = ["diretorio_nacional", "diretorio_estadual", "diretorio_municipal"];
+  var estado = { categoria: null };
+  var partidosCache = [];
+  var partidoPicker = null;
+  var municipioDebounce = null;
 
-  function clienteDepth(path) {
-    return path ? path.split(".").length - 1 : 0;
-  }
+  var LABELS_NOME = { candidato: "Nome do candidato", pessoa_fisica: "Nome completo", pessoa_juridica: "Razão social" };
+  var LABELS_DOC = { candidato: "CPF", pessoa_fisica: "CPF", pessoa_juridica: "CNPJ" };
+  var PLACEHOLDERS_DOC = { candidato: "000.000.000-00", pessoa_fisica: "000.000.000-00", pessoa_juridica: "00.000.000/0000-00" };
+
   function setMsg(key, text, isError) {
     var el = document.querySelector('[data-msg="' + key + '"]');
     if (!el) return;
@@ -16,159 +20,213 @@
     var el = document.getElementById(id);
     return el.value.trim() === "" ? null : el.value.trim();
   }
-  function tipoSelecionado() {
-    return document.getElementById("cad-tipo-cliente").value;
+  function toggle(selector, mostrar) {
+    document.querySelectorAll(selector).forEach(function (el) { el.hidden = !mostrar; });
   }
 
-  function mascararDocumento(valor) {
-    var digitos = valor.replace(/\D/g, "").slice(0, 14);
-    if (digitos.length <= 11) {
-      // CPF: 000.000.000-00
-      return digitos
-        .replace(/(\d{3})(\d)/, "$1.$2")
-        .replace(/(\d{3})(\d)/, "$1.$2")
-        .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-    }
-    // CNPJ: 00.000.000/0000-00
-    return digitos
-      .replace(/(\d{2})(\d)/, "$1.$2")
-      .replace(/(\d{3})(\d)/, "$1.$2")
-      .replace(/(\d{3})(\d)/, "$1/$2")
-      .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
-  }
   async function carregarPartidos() {
     var { data, error } = await bfSupabase.from("partidos").select("*").order("sigla");
     if (error) { console.error(error); return; }
-
-    var options = (data || []).map(function (p) { return '<option value="' + p.id + '">' + (p.sigla ? p.sigla + " — " + p.nome : p.nome) + "</option>"; }).join("");
-    document.getElementById("cad-partido").innerHTML =
-      '<option value="">— não vinculado a partido —</option>' + options;
+    partidosCache = data || [];
   }
 
-  async function carregarClientes() {
-    var { data, error } = await bfSupabase
-      .from("clientes")
-      .select("id, nome, path")
-      .order("path");
-    if (error) { console.error(error); return; }
-
-    var options = (data || []).map(function (c) {
-      var indent = "— ".repeat(clienteDepth(c.path));
-      return '<option value="' + c.id + '">' + indent + c.nome + "</option>";
-    }).join("");
-
-    document.getElementById("cad-pai").innerHTML =
-      '<option value="">— selecione —</option>' + options;
+  function partidoSelecionado() {
+    var id = val("cad-partido-id");
+    return partidosCache.filter(function (p) { return p.id === id; })[0] || null;
   }
 
-  function bindForm(key, handler) {
-    var form = document.querySelector('[data-form="' + key + '"]');
-    form.addEventListener("submit", async function (e) {
-      e.preventDefault();
-      setMsg(key, "Salvando…", false);
-      try {
-        await handler();
-        setMsg(key, "Salvo com sucesso.", false);
-        form.reset();
-        atualizarCamposCliente();
-      } catch (err) {
-        console.error(err);
-        setMsg(key, "Erro ao salvar: " + (err.message || "tente novamente."), true);
-      }
-    });
+  function cargoEscopoAtual() {
+    return BF.escopoCargo(document.getElementById("cad-cargo").value);
   }
 
-  function atualizarCamposCliente() {
-    var tipo = tipoSelecionado();
-    var ehDiretorio = DIRETORIOS.indexOf(tipo) !== -1;
-    var ehCandidato = tipo === "candidato";
-    var precisaPartido = ehDiretorio || ehCandidato;
-    var precisaUf = tipo === "diretorio_estadual" || tipo === "diretorio_municipal";
-    var precisaMunicipio = tipo === "diretorio_municipal";
-    var precisaPai = tipo === "diretorio_estadual" || tipo === "diretorio_municipal";
+  async function atualizarNomeGeradoEHierarquia() {
+    if (estado.categoria !== "partido") return;
+    var inst = document.getElementById("cad-instancia").value;
+    var partido = partidoSelecionado();
+    var uf = val("cad-uf");
+    var municipio = val("cad-municipio");
+    var nome = partido ? BF.gerarNomeCliente(partido.nome, inst, uf, municipio) : "";
+    document.getElementById("cad-nome-gerado").value = nome;
 
-    document.querySelectorAll("[data-campo-partido]").forEach(function (el) {
-      el.hidden = !precisaPartido;
-    });
-    document.querySelectorAll("[data-campo-uf]").forEach(function (el) {
-      el.hidden = !precisaUf;
-    });
-    document.querySelectorAll("[data-campo-municipio]").forEach(function (el) {
-      el.hidden = !precisaMunicipio;
-    });
-    document.querySelectorAll("[data-campo-pai]").forEach(function (el) {
-      el.hidden = !precisaPai;
-    });
-    document.querySelectorAll("[data-campo-candidato]").forEach(function (el) {
-      el.hidden = !ehCandidato;
-    });
-    if (!precisaPartido) {
-      document.querySelector("[data-novo-partido-box]").hidden = true;
+    var hint = document.querySelector("[data-hierarquia-hint]");
+    hint.classList.remove("is-error");
+    if (!partido || (inst !== "diretorio_estadual" && inst !== "diretorio_municipal")) {
+      hint.textContent = "";
+      return;
     }
+    if (inst === "diretorio_municipal" && !uf) {
+      hint.textContent = "";
+      return;
+    }
+    hint.textContent = "Verificando instância superior…";
+    var superior = await BF.encontrarSuperior(inst, partido.id, uf);
+    hint.textContent = superior
+      ? "Vinculado automaticamente a: " + superior.nome
+      : "Instância superior ainda não cadastrada — o cadastro segue normalmente, você pode vincular depois.";
   }
 
-  async function salvarNovoPartido(sigla, nome) {
-    var { data, error } = await bfSupabase.from("partidos").insert({ sigla: sigla, nome: nome }).select().single();
+  function atualizarCampos() {
+    var cat = estado.categoria;
+    var ehPartido = cat === "partido";
+    var ehCandidato = cat === "candidato";
+    var ehPF = cat === "pessoa_fisica";
+    var ehPJ = cat === "pessoa_juridica";
+    var inst = ehPartido ? document.getElementById("cad-instancia").value : null;
+    var escopo = ehCandidato ? cargoEscopoAtual() : null;
+
+    toggle("[data-campo-nome]", ehCandidato || ehPF || ehPJ);
+    toggle("[data-campo-documento]", ehCandidato || ehPF || ehPJ);
+    toggle("[data-campo-partido]", ehPartido || ehCandidato);
+    toggle("[data-campo-instancia]", ehPartido);
+    toggle("[data-campo-cargo]", ehCandidato);
+    toggle("[data-campo-cargo-outro]", ehCandidato && document.getElementById("cad-cargo").value === "outro");
+    toggle("[data-campo-ano]", ehCandidato);
+    toggle("[data-campo-nome-gerado]", ehPartido);
+
+    var precisaUf = (ehPartido && (inst === "diretorio_estadual" || inst === "diretorio_municipal"))
+      || (ehCandidato && (escopo === "uf" || escopo === "municipio" || escopo === "livre"))
+      || ehPF || ehPJ;
+    var precisaMunicipio = (ehPartido && inst === "diretorio_municipal")
+      || (ehCandidato && (escopo === "municipio" || escopo === "livre"))
+      || ehPF || ehPJ;
+    toggle("[data-campo-uf]", precisaUf);
+    toggle("[data-campo-municipio]", precisaMunicipio);
+
+    if (ehCandidato || ehPF || ehPJ) {
+      var labelNome = document.querySelector('label[for="cad-nome"]');
+      var labelDoc = document.querySelector('label[for="cad-documento"]');
+      if (labelNome) labelNome.textContent = LABELS_NOME[cat];
+      if (labelDoc) labelDoc.textContent = LABELS_DOC[cat];
+      document.getElementById("cad-documento").placeholder = PLACEHOLDERS_DOC[cat];
+    }
+    document.getElementById("cad-nome").required = ehCandidato || ehPF || ehPJ;
+
+    atualizarNomeGeradoEHierarquia();
+  }
+
+  function selecionarCategoria(cat) {
+    document.getElementById("form-cliente-cadastro").reset();
+    if (partidoPicker) partidoPicker.clear();
+    document.querySelector("[data-hierarquia-hint]").textContent = "";
+    estado.categoria = cat;
+    document.querySelectorAll("[data-categoria-btn]").forEach(function (btn) {
+      btn.classList.toggle("is-active", btn.getAttribute("data-categoria-btn") === cat);
+    });
+    document.querySelector("[data-secao-form]").hidden = false;
+    atualizarCampos();
+  }
+
+  function resetFormulario() {
+    document.getElementById("form-cliente-cadastro").reset();
+    if (partidoPicker) partidoPicker.clear();
+    document.querySelector("[data-hierarquia-hint]").textContent = "";
+    document.querySelectorAll("[data-categoria-btn]").forEach(function (btn) { btn.classList.remove("is-active"); });
+    document.querySelector("[data-secao-form]").hidden = true;
+    estado.categoria = null;
+  }
+
+  async function salvarCliente() {
+    var cat = estado.categoria;
+    if (!cat) throw new Error("selecione o que deseja cadastrar");
+
+    var payload = {
+      nome: null, documento: null, tipo_cliente: null, partido_id: null,
+      uf: null, municipio: null, parent_id: null, cargo_disputado: null, ano_eleicao: null,
+    };
+
+    if (cat === "partido") {
+      var inst = document.getElementById("cad-instancia").value;
+      if (!inst) throw new Error("selecione a instância do partido");
+      var partido = partidoSelecionado();
+      if (!partido) throw new Error("selecione o partido");
+      var uf = (inst === "diretorio_estadual" || inst === "diretorio_municipal") ? val("cad-uf") : null;
+      var municipio = inst === "diretorio_municipal" ? val("cad-municipio") : null;
+      if ((inst === "diretorio_estadual" || inst === "diretorio_municipal") && !uf) throw new Error("informe a UF");
+      if (inst === "diretorio_municipal" && !municipio) throw new Error("informe o município");
+
+      var nome = BF.gerarNomeCliente(partido.nome, inst, uf, municipio);
+      if (!nome) throw new Error("não foi possível gerar o nome do cliente");
+
+      var superior = await BF.encontrarSuperior(inst, partido.id, uf);
+
+      payload.tipo_cliente = inst;
+      payload.partido_id = partido.id;
+      payload.uf = uf;
+      payload.municipio = municipio;
+      payload.nome = nome;
+      payload.parent_id = superior ? superior.id : null;
+    } else if (cat === "candidato") {
+      var cargoValor = document.getElementById("cad-cargo").value;
+      payload.tipo_cliente = "candidato";
+      payload.nome = val("cad-nome");
+      payload.documento = val("cad-documento");
+      var partidoCand = partidoSelecionado();
+      payload.partido_id = partidoCand ? partidoCand.id : null;
+      payload.cargo_disputado = cargoValor === "outro" ? val("cad-cargo-outro") : BF.labelCargo(cargoValor);
+      payload.ano_eleicao = val("cad-ano-eleicao") ? Number(val("cad-ano-eleicao")) : null;
+      payload.uf = val("cad-uf");
+      payload.municipio = val("cad-municipio");
+      if (!payload.nome) throw new Error("preencha o nome do candidato");
+    } else {
+      payload.tipo_cliente = cat;
+      payload.nome = val("cad-nome");
+      payload.documento = val("cad-documento");
+      payload.uf = val("cad-uf");
+      payload.municipio = val("cad-municipio");
+      if (!payload.nome) throw new Error("preencha o nome");
+    }
+
+    var { error } = await bfSupabase.from("clientes").insert(payload);
     if (error) throw error;
-    return data;
   }
 
   function iniciarFormularios() {
-    document.getElementById("cad-tipo-cliente").addEventListener("change", atualizarCamposCliente);
-    atualizarCamposCliente();
+    document.getElementById("cad-uf").innerHTML = BF.opcoesUF();
+    document.getElementById("cad-cargo").innerHTML = BF.opcoesCargo();
+
+    document.querySelectorAll("[data-categoria-btn]").forEach(function (btn) {
+      btn.addEventListener("click", function () { selecionarCategoria(btn.getAttribute("data-categoria-btn")); });
+    });
 
     document.getElementById("cad-documento").addEventListener("input", function (e) {
-      e.target.value = mascararDocumento(e.target.value);
+      e.target.value = BF.mascararDocumento(e.target.value);
     });
 
-    document.querySelector("[data-toggle-novo-partido]").addEventListener("click", function () {
-      var box = document.querySelector("[data-novo-partido-box]");
-      box.hidden = !box.hidden;
+    partidoPicker = BF.criarPartidoPicker({
+      inputEl: document.getElementById("cad-partido-busca"),
+      hiddenEl: document.getElementById("cad-partido-id"),
+      listEl: document.getElementById("cad-partido-lista"),
+      getPartidos: function () { return partidosCache; },
+      onChange: atualizarNomeGeradoEHierarquia,
     });
 
-    document.querySelector("[data-salvar-novo-partido]").addEventListener("click", async function () {
-      var sigla = val("novo-partido-sigla");
-      var nome = val("novo-partido-nome");
-      if (!sigla || !nome) {
-        setMsg("novo-partido", "preencha sigla e nome", true);
-        return;
-      }
+    document.querySelector("[data-abrir-novo-partido]").addEventListener("click", async function () {
+      var partido = await BF.abrirModalNovoPartido();
+      if (!partido) return;
+      partidosCache.push(partido);
+      partidoPicker.setValue(partido);
+      atualizarNomeGeradoEHierarquia();
+    });
+
+    document.getElementById("cad-instancia").addEventListener("change", atualizarCampos);
+    document.getElementById("cad-uf").addEventListener("change", atualizarNomeGeradoEHierarquia);
+    document.getElementById("cad-municipio").addEventListener("input", function () {
+      clearTimeout(municipioDebounce);
+      municipioDebounce = setTimeout(atualizarNomeGeradoEHierarquia, 350);
+    });
+    document.getElementById("cad-cargo").addEventListener("change", atualizarCampos);
+
+    document.querySelector('[data-form="cliente-cadastro"]').addEventListener("submit", async function (e) {
+      e.preventDefault();
+      setMsg("cliente-cadastro", "Salvando…", false);
       try {
-        setMsg("novo-partido", "Salvando…", false);
-        var novo = await salvarNovoPartido(sigla, nome);
-        await carregarPartidos();
-        document.getElementById("cad-partido").value = novo.id;
-        document.getElementById("novo-partido-sigla").value = "";
-        document.getElementById("novo-partido-nome").value = "";
-        document.querySelector("[data-novo-partido-box]").hidden = true;
-        setMsg("novo-partido", "", false);
+        await salvarCliente();
+        setMsg("cliente-cadastro", "Salvo com sucesso.", false);
+        resetFormulario();
       } catch (err) {
-        setMsg("novo-partido", "Erro: " + (err.message || "tente novamente."), true);
+        console.error(err);
+        setMsg("cliente-cadastro", "Erro ao salvar: " + (err.message || "tente novamente."), true);
       }
-    });
-
-    bindForm("cliente-cadastro", async function () {
-      var tipo = tipoSelecionado();
-      var ehDiretorio = DIRETORIOS.indexOf(tipo) !== -1;
-      var ehCandidato = tipo === "candidato";
-      var payload = {
-        nome: val("cad-nome"),
-        documento: val("cad-documento"),
-        tipo_cliente: tipo,
-        partido_id: (ehDiretorio || ehCandidato) ? val("cad-partido") : null,
-        uf: (tipo === "diretorio_estadual" || tipo === "diretorio_municipal") ? val("cad-uf") : null,
-        municipio: tipo === "diretorio_municipal" ? val("cad-municipio") : null,
-        parent_id: (tipo === "diretorio_estadual" || tipo === "diretorio_municipal") ? val("cad-pai") : null,
-        cargo_disputado: ehCandidato ? val("cad-cargo") : null,
-        ano_eleicao: ehCandidato && val("cad-ano-eleicao") ? Number(val("cad-ano-eleicao")) : null,
-      };
-      if (!payload.nome) throw new Error("preencha o nome do cliente");
-      if (!payload.tipo_cliente) throw new Error("selecione o tipo de cliente");
-      var { error } = await bfSupabase.from("clientes").insert(payload);
-      if (error) throw error;
-      await carregarClientes();
-      document.getElementById("cad-tipo-cliente").value = "";
-      atualizarCamposCliente();
     });
   }
 
@@ -188,7 +246,6 @@
     });
 
     await carregarPartidos();
-    await carregarClientes();
     iniciarFormularios();
   }
 

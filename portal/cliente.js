@@ -30,9 +30,6 @@
   var clienteId = new URLSearchParams(location.search).get("id");
   var DIRETORIOS = ["diretorio_nacional", "diretorio_estadual", "diretorio_municipal"];
 
-  function clienteDepth(path) {
-    return path ? path.split(".").length - 1 : 0;
-  }
   function linkProcesso(p) {
     return p.numero_processo ? "processo.html?numero=" + encodeURIComponent(p.numero_processo) : "processo.html?id=" + p.id;
   }
@@ -110,19 +107,64 @@
     preencherFormularioEdicao(data);
   }
 
+  var partidoPickerEdicao = null;
+  var editMunicipioDebounce = null;
+
+  function partidoSelecionadoEdicao() {
+    var id = val("edit-partido-id");
+    return partidosCache.filter(function (p) { return p.id === id; })[0] || null;
+  }
+
+  async function atualizarNomeGeradoEHierarquiaEdicao() {
+    var tipo = document.getElementById("edit-tipo-cliente").value;
+    var hint = document.querySelector("[data-hierarquia-hint-edit]");
+    if (DIRETORIOS.indexOf(tipo) === -1) { hint.textContent = ""; return; }
+
+    var partido = partidoSelecionadoEdicao();
+    var uf = val("edit-uf");
+    var municipio = val("edit-municipio");
+    document.getElementById("edit-nome-gerado").value = partido ? BF.gerarNomeCliente(partido.nome, tipo, uf, municipio) : "";
+
+    hint.textContent = "";
+    if (!partido || tipo === "diretorio_nacional") return;
+    if (tipo === "diretorio_municipal" && !uf) return;
+    hint.textContent = "Verificando instância superior…";
+    var superior = await BF.encontrarSuperior(tipo, partido.id, uf);
+    hint.textContent = superior
+      ? "Vinculado automaticamente a: " + superior.nome
+      : "Instância superior ainda não cadastrada — a alteração é salva normalmente.";
+  }
+
   function atualizarCamposClienteEdicao() {
     var tipo = document.getElementById("edit-tipo-cliente").value;
     var ehDiretorio = DIRETORIOS.indexOf(tipo) !== -1;
     var ehCandidato = tipo === "candidato";
-    var precisaUf = tipo === "diretorio_estadual" || tipo === "diretorio_municipal";
-    var precisaMunicipio = tipo === "diretorio_municipal";
-    var precisaPai = tipo === "diretorio_estadual" || tipo === "diretorio_municipal";
+    var ehPF = tipo === "pessoa_fisica";
+    var ehPJ = tipo === "pessoa_juridica";
+    var escopo = ehCandidato ? BF.escopoCargo(document.getElementById("edit-cargo").value) : null;
 
+    document.querySelectorAll("[data-campo-nome]").forEach(function (el) { el.hidden = ehDiretorio; });
+    document.querySelectorAll("[data-campo-documento]").forEach(function (el) { el.hidden = ehDiretorio; });
     document.querySelectorAll("[data-campo-partido]").forEach(function (el) { el.hidden = !(ehDiretorio || ehCandidato); });
+    document.querySelectorAll("[data-campo-nome-gerado]").forEach(function (el) { el.hidden = !ehDiretorio; });
+    document.querySelectorAll("[data-campo-cargo]").forEach(function (el) { el.hidden = !ehCandidato; });
+    document.querySelectorAll("[data-campo-cargo-outro]").forEach(function (el) {
+      el.hidden = !(ehCandidato && document.getElementById("edit-cargo").value === "outro");
+    });
+    document.querySelectorAll("[data-campo-ano]").forEach(function (el) { el.hidden = !ehCandidato; });
+
+    var precisaUf = (ehDiretorio && tipo !== "diretorio_nacional")
+      || (ehCandidato && (escopo === "uf" || escopo === "municipio" || escopo === "livre"))
+      || ehPF || ehPJ;
+    var precisaMunicipio = tipo === "diretorio_municipal"
+      || (ehCandidato && (escopo === "municipio" || escopo === "livre"))
+      || ehPF || ehPJ;
     document.querySelectorAll("[data-campo-uf]").forEach(function (el) { el.hidden = !precisaUf; });
     document.querySelectorAll("[data-campo-municipio]").forEach(function (el) { el.hidden = !precisaMunicipio; });
-    document.querySelectorAll("[data-campo-pai]").forEach(function (el) { el.hidden = !precisaPai; });
-    document.querySelectorAll("[data-campo-candidato]").forEach(function (el) { el.hidden = !ehCandidato; });
+
+    document.getElementById("edit-nome").required = !ehDiretorio;
+
+    atualizarNomeGeradoEHierarquiaEdicao();
   }
 
   async function carregarAdvogados() {
@@ -136,34 +178,25 @@
     document.getElementById("proc-responsavel").innerHTML = '<option value="">— não atribuído —</option>' + options;
   }
 
+  var partidosCache = [];
+
   async function carregarPartidosParaEdicao() {
     var { data, error } = await bfSupabase.from("partidos").select("*").order("sigla");
     if (error) { console.error(error); return; }
-    var options = (data || []).map(function (p) { return '<option value="' + p.id + '">' + (p.sigla ? p.sigla + " — " + p.nome : p.nome) + "</option>"; }).join("");
-    document.getElementById("edit-partido").innerHTML = '<option value="">— não vinculado a partido —</option>' + options;
-  }
-
-  async function carregarClientesParaPai() {
-    var { data, error } = await bfSupabase.from("clientes").select("id, nome, path").order("path");
-    if (error) { console.error(error); return; }
-    var options = (data || [])
-      .filter(function (c) { return c.id !== clienteId; })
-      .map(function (c) {
-        var indent = "— ".repeat(clienteDepth(c.path));
-        return '<option value="' + c.id + '">' + indent + c.nome + "</option>";
-      }).join("");
-    document.getElementById("edit-pai").innerHTML = '<option value="">— selecione —</option>' + options;
+    partidosCache = data || [];
   }
 
   function preencherFormularioEdicao(data) {
     document.getElementById("edit-nome").value = data.nome || "";
     document.getElementById("edit-documento").value = data.documento || "";
     document.getElementById("edit-tipo-cliente").value = data.tipo_cliente;
-    document.getElementById("edit-partido").value = data.partido_id || "";
+    var partido = data.partido_id ? partidosCache.filter(function (p) { return p.id === data.partido_id; })[0] : null;
+    if (partidoPickerEdicao) partidoPickerEdicao.setValue(partido);
     document.getElementById("edit-uf").value = data.uf || "";
     document.getElementById("edit-municipio").value = data.municipio || "";
-    document.getElementById("edit-pai").value = data.parent_id || "";
-    document.getElementById("edit-cargo").value = data.cargo_disputado || "";
+    var cargoValor = BF.valorPorLabelCargo(data.cargo_disputado);
+    document.getElementById("edit-cargo").value = cargoValor || (data.cargo_disputado ? "outro" : "");
+    document.getElementById("edit-cargo-outro").value = cargoValor ? "" : (data.cargo_disputado || "");
     document.getElementById("edit-ano-eleicao").value = data.ano_eleicao || "";
     atualizarCamposClienteEdicao();
   }
@@ -234,34 +267,36 @@
     document.getElementById("proc-categoria").addEventListener("change", atualizarCampoResultado);
     atualizarCampoResultado();
 
+    document.getElementById("edit-uf").innerHTML = BF.opcoesUF();
+    document.getElementById("edit-cargo").innerHTML = BF.opcoesCargo();
+
+    document.getElementById("edit-documento").addEventListener("input", function (e) {
+      e.target.value = BF.mascararDocumento(e.target.value);
+    });
+
+    partidoPickerEdicao = BF.criarPartidoPicker({
+      inputEl: document.getElementById("edit-partido-busca"),
+      hiddenEl: document.getElementById("edit-partido-id"),
+      listEl: document.getElementById("edit-partido-lista"),
+      getPartidos: function () { return partidosCache; },
+      onChange: atualizarNomeGeradoEHierarquiaEdicao,
+    });
+
+    document.querySelector("[data-abrir-novo-partido-edit]").addEventListener("click", async function () {
+      var partido = await BF.abrirModalNovoPartido();
+      if (!partido) return;
+      partidosCache.push(partido);
+      partidoPickerEdicao.setValue(partido);
+      atualizarNomeGeradoEHierarquiaEdicao();
+    });
+
     document.getElementById("edit-tipo-cliente").addEventListener("change", atualizarCamposClienteEdicao);
-
-    document.querySelector("[data-toggle-novo-partido-edit]").addEventListener("click", function () {
-      var box = document.querySelector("[data-novo-partido-box-edit]");
-      box.hidden = !box.hidden;
+    document.getElementById("edit-uf").addEventListener("change", atualizarNomeGeradoEHierarquiaEdicao);
+    document.getElementById("edit-municipio").addEventListener("input", function () {
+      clearTimeout(editMunicipioDebounce);
+      editMunicipioDebounce = setTimeout(atualizarNomeGeradoEHierarquiaEdicao, 350);
     });
-
-    document.querySelector("[data-salvar-novo-partido-edit]").addEventListener("click", async function () {
-      var sigla = val("novo-partido-sigla-edit");
-      var nome = val("novo-partido-nome-edit");
-      if (!sigla || !nome) {
-        setMsg("novo-partido-edit", "preencha sigla e nome", true);
-        return;
-      }
-      try {
-        setMsg("novo-partido-edit", "Salvando…", false);
-        var { data: novo, error } = await bfSupabase.from("partidos").insert({ sigla: sigla, nome: nome }).select().single();
-        if (error) throw error;
-        await carregarPartidosParaEdicao();
-        document.getElementById("edit-partido").value = novo.id;
-        document.getElementById("novo-partido-sigla-edit").value = "";
-        document.getElementById("novo-partido-nome-edit").value = "";
-        document.querySelector("[data-novo-partido-box-edit]").hidden = true;
-        setMsg("novo-partido-edit", "", false);
-      } catch (err) {
-        setMsg("novo-partido-edit", "Erro: " + (err.message || "tente novamente."), true);
-      }
-    });
+    document.getElementById("edit-cargo").addEventListener("change", atualizarCamposClienteEdicao);
 
     document.querySelector("[data-toggle-novo-processo]").addEventListener("click", function () {
       var box = document.querySelector("[data-novo-processo-box]");
@@ -277,18 +312,45 @@
       var tipo = document.getElementById("edit-tipo-cliente").value;
       var ehDiretorio = DIRETORIOS.indexOf(tipo) !== -1;
       var ehCandidato = tipo === "candidato";
+      var partido = (ehDiretorio || ehCandidato) ? partidoSelecionadoEdicao() : null;
+
       var payload = {
-        nome: val("edit-nome"),
-        documento: val("edit-documento"),
-        tipo_cliente: tipo,
-        partido_id: (ehDiretorio || ehCandidato) ? val("edit-partido") : null,
-        uf: (tipo === "diretorio_estadual" || tipo === "diretorio_municipal") ? val("edit-uf") : null,
-        municipio: tipo === "diretorio_municipal" ? val("edit-municipio") : null,
-        parent_id: (tipo === "diretorio_estadual" || tipo === "diretorio_municipal") ? val("edit-pai") : null,
-        cargo_disputado: ehCandidato ? val("edit-cargo") : null,
-        ano_eleicao: ehCandidato && val("edit-ano-eleicao") ? Number(val("edit-ano-eleicao")) : null,
+        nome: null, documento: null, tipo_cliente: tipo,
+        partido_id: partido ? partido.id : null,
+        uf: null, municipio: null, parent_id: null,
+        cargo_disputado: null, ano_eleicao: null,
       };
-      if (!payload.nome) throw new Error("preencha o nome do cliente");
+
+      if (ehDiretorio) {
+        if (!partido) throw new Error("selecione o partido");
+        var uf = tipo !== "diretorio_nacional" ? val("edit-uf") : null;
+        var municipio = tipo === "diretorio_municipal" ? val("edit-municipio") : null;
+        if (tipo !== "diretorio_nacional" && !uf) throw new Error("informe a UF");
+        if (tipo === "diretorio_municipal" && !municipio) throw new Error("informe o município");
+        var nome = BF.gerarNomeCliente(partido.nome, tipo, uf, municipio);
+        if (!nome) throw new Error("não foi possível gerar o nome do cliente");
+        var superior = await BF.encontrarSuperior(tipo, partido.id, uf);
+        payload.uf = uf;
+        payload.municipio = municipio;
+        payload.nome = nome;
+        payload.parent_id = superior ? superior.id : null;
+      } else if (ehCandidato) {
+        var cargoValor = document.getElementById("edit-cargo").value;
+        payload.nome = val("edit-nome");
+        payload.documento = val("edit-documento");
+        payload.cargo_disputado = cargoValor === "outro" ? val("edit-cargo-outro") : BF.labelCargo(cargoValor);
+        payload.ano_eleicao = val("edit-ano-eleicao") ? Number(val("edit-ano-eleicao")) : null;
+        payload.uf = val("edit-uf");
+        payload.municipio = val("edit-municipio");
+        if (!payload.nome) throw new Error("preencha o nome do candidato");
+      } else {
+        payload.nome = val("edit-nome");
+        payload.documento = val("edit-documento");
+        payload.uf = val("edit-uf");
+        payload.municipio = val("edit-municipio");
+        if (!payload.nome) throw new Error("preencha o nome");
+      }
+
       var { error } = await bfSupabase.from("clientes").update(payload).eq("id", clienteId);
       if (error) throw error;
       await carregarCliente();
@@ -383,10 +445,9 @@
 
     await carregarAdvogados();
     await carregarPartidosParaEdicao();
-    await carregarClientesParaPai();
+    iniciarFormularios();
     await carregarCliente();
     await carregarProcessos();
-    iniciarFormularios();
   }
 
   init();

@@ -1185,6 +1185,86 @@ section{ padding: clamp(4.5rem, 9vw, 8rem) 0; }
 }
 .portal-inline-link:hover{ color: var(--navy-deep); }
 
+/* Passo 1 do cadastro: "o que você deseja cadastrar" */
+.categoria-grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: .8rem;
+  margin-top: 1rem;
+}
+.categoria-btn{
+  font-family: var(--font-display);
+  font-size: .85rem;
+  font-weight: 600;
+  letter-spacing: .03em;
+  text-align: left;
+  padding: 1.1rem 1.2rem;
+  border: 1px solid #cfd3d4;
+  border-radius: 2px;
+  background: var(--white);
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color .2s var(--ease), background .2s var(--ease), color .2s var(--ease);
+}
+.categoria-btn:hover{ border-color: var(--navy); }
+.categoria-btn.is-active{ border-color: var(--navy); background: var(--navy); color: var(--white); }
+
+/* Combobox pesquisável (partido) */
+.combo-list{
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + .3rem);
+  left: 0;
+  right: 0;
+  max-height: 14rem;
+  overflow-y: auto;
+  background: var(--white);
+  border: 1px solid #cfd3d4;
+  border-radius: 2px;
+  box-shadow: 0 10px 30px -16px rgba(14,13,18,.35);
+}
+.combo-option{ padding: .65rem 1rem; font-size: .92rem; cursor: pointer; }
+.combo-option:hover{ background: rgba(27,59,94,.06); }
+.combo-empty{ padding: .65rem 1rem; font-size: .86rem; color: var(--slate); }
+
+.field input[readonly]{ background: rgba(27,59,94,.04); color: var(--ink-soft); cursor: default; }
+.field-hint{ margin-top: .5rem; font-size: .82rem; color: var(--ink-soft); }
+.field-hint.is-error{ color: #8a3b1f; }
+
+/* Modal genérico (ex: novo partido) */
+.portal-modal-backdrop{
+  position: fixed;
+  inset: 0;
+  background: rgba(16,31,50,.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1.5rem;
+}
+.portal-modal-backdrop[hidden]{ display: none; }
+.portal-modal{
+  background: var(--white);
+  border-radius: 2px;
+  padding: 1.8rem;
+  width: 100%;
+  max-width: 26rem;
+  box-shadow: 0 20px 60px -20px rgba(14,13,18,.5);
+}
+.portal-modal h3{
+  font-family: var(--font-display);
+  color: var(--navy);
+  font-size: 1.05rem;
+  margin: 0 0 .4rem;
+}
+.portal-modal-actions{
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.4rem;
+}
+
 .credential-box{
   display: none;
   margin-top: 1.4rem;
