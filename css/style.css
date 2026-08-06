@@ -213,6 +213,9 @@ p:last-child{ margin-bottom: 0; }
 .btn-ghost-light{ background: transparent; color: var(--navy); border-color: rgba(27,59,94,.35); }
 .btn-ghost-light:hover{ background: rgba(27,59,94,.06); border-color: var(--navy); }
 
+.btn-danger{ background: transparent; color: #8a3b1f; border-color: rgba(138,59,31,.4); }
+.btn-danger:hover{ background: rgba(138,59,31,.08); border-color: #8a3b1f; }
+
 .btn-block{ width: 100%; justify-content: center; }
 
 /* ---------------------------------------------------------

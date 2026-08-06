@@ -6,7 +6,7 @@
 <title>Pasta do cliente — Bessoni &amp; Fortes</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/png" href="../assets/img/bf-mark-navy.png">
-<link rel="stylesheet" href="../css/style.css?v=20">
+<link rel="stylesheet" href="../css/style.css?v=21">
 </head>
 <body>
 
@@ -41,7 +41,11 @@
         <a class="portal-inline-link" href="clientes.html">← Voltar aos clientes</a>
         <h1 style="margin-top: .8rem;" data-cliente-nome>Carregando…</h1>
         <p data-cliente-info></p>
-        <button class="btn btn-ghost-light" type="button" data-toggle-editar-cliente style="margin-top: .8rem;">Editar dados do cliente</button>
+        <div class="portal-form-actions" style="margin-top: .8rem;">
+          <button class="btn btn-ghost-light" type="button" data-toggle-editar-cliente>Editar dados do cliente</button>
+          <button class="btn btn-danger" type="button" data-excluir-cliente>Excluir cliente</button>
+          <span class="portal-inline-msg" data-msg="excluir-cliente"></span>
+        </div>
       </div>
 
       <!-- EDIÇÃO DO CLIENTE -->

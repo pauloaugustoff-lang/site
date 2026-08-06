@@ -261,4 +261,55 @@
       };
     });
   };
+
+  // ---------------------------------------------------------------
+  // Modal genérico de confirmação (usado por exclusões e outras ações
+  // irreversíveis). Retorna uma Promise<boolean>.
+  // opts: { textoConfirmar, perigoso }
+  // ---------------------------------------------------------------
+  var confirmModalEl = null;
+  function garantirConfirmModal() {
+    if (confirmModalEl) return confirmModalEl;
+    confirmModalEl = document.createElement("div");
+    confirmModalEl.className = "portal-modal-backdrop";
+    confirmModalEl.hidden = true;
+    confirmModalEl.innerHTML =
+      '<div class="portal-modal">' +
+        '<h3 data-bf-confirm-titulo>Confirmar</h3>' +
+        '<p class="portal-section-desc" data-bf-confirm-mensagem style="margin-top:.6rem;"></p>' +
+        '<div class="portal-modal-actions">' +
+          '<button type="button" class="btn btn-ghost-light" data-bf-confirm-cancelar>Cancelar</button>' +
+          '<button type="button" class="btn" data-bf-confirm-ok>Confirmar</button>' +
+        "</div>" +
+      "</div>";
+    document.body.appendChild(confirmModalEl);
+    return confirmModalEl;
+  }
+
+  BF.confirmar = function (mensagem, opts) {
+    opts = opts || {};
+    var modal = garantirConfirmModal();
+    var tituloEl = modal.querySelector("[data-bf-confirm-titulo]");
+    var msgEl = modal.querySelector("[data-bf-confirm-mensagem]");
+    var okBtn = modal.querySelector("[data-bf-confirm-ok]");
+    var cancelarBtn = modal.querySelector("[data-bf-confirm-cancelar]");
+
+    tituloEl.textContent = opts.titulo || "Confirmar";
+    msgEl.textContent = mensagem;
+    okBtn.textContent = opts.textoConfirmar || "Confirmar";
+    okBtn.className = "btn " + (opts.perigoso === false ? "btn-primary" : "btn-danger");
+    modal.hidden = false;
+
+    return new Promise(function (resolve) {
+      function limpar() {
+        okBtn.onclick = null;
+        cancelarBtn.onclick = null;
+        modal.onclick = null;
+        modal.hidden = true;
+      }
+      cancelarBtn.onclick = function () { limpar(); resolve(false); };
+      modal.onclick = function (e) { if (e.target === modal) { limpar(); resolve(false); } };
+      okBtn.onclick = function () { limpar(); resolve(true); };
+    });
+  };
 })();

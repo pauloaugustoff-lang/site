@@ -308,6 +308,32 @@
       box.hidden = !box.hidden;
     });
 
+    document.querySelector("[data-excluir-cliente]").addEventListener("click", async function () {
+      var ok = await BF.confirmar(
+        "Isso exclui o cliente e todos os processos, determinações e documentos vinculados a ele. Não é possível desfazer.",
+        { titulo: "Excluir cliente?", textoConfirmar: "Excluir cliente" }
+      );
+      if (!ok) return;
+      setMsg("excluir-cliente", "Excluindo…", false);
+      var { error } = await bfSupabase.from("clientes").delete().eq("id", clienteId);
+      if (error) {
+        console.error(error);
+        var msg = "Erro ao excluir: " + error.message;
+        if (error.code === "23503") {
+          if (error.message.indexOf("parent_id") !== -1) {
+            msg = "Este cliente ainda tem diretórios vinculados abaixo dele na hierarquia — exclua ou reatribua esses clientes primeiro.";
+          } else if (error.message.indexOf("perfis") !== -1) {
+            msg = "Este cliente ainda tem login(s) de acesso ativos — remova os acessos antes de excluir.";
+          } else {
+            msg = "Não é possível excluir: existem outros registros vinculados a este cliente.";
+          }
+        }
+        setMsg("excluir-cliente", msg, true);
+        return;
+      }
+      window.location.href = "clientes.html";
+    });
+
     bindForm("cliente-editar", async function () {
       var tipo = document.getElementById("edit-tipo-cliente").value;
       var ehDiretorio = DIRETORIOS.indexOf(tipo) !== -1;

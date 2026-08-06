@@ -110,7 +110,9 @@ for each row execute function set_cliente_path();
 -- -------------------------------------------------------------
 create table processos (
   id uuid primary key default gen_random_uuid(),
-  cliente_id uuid not null references clientes(id),
+  -- cascade: excluir um cliente leva junto seus processos (e, por tabela,
+  -- as determinações/documentos de cada um)
+  cliente_id uuid not null references clientes(id) on delete cascade,
   categoria text not null check (
     categoria in ('prestacao_contas', 'aije', 'representacao', 'registro_candidatura', 'drap', 'outro')
   ),
@@ -152,7 +154,8 @@ create index idx_processos_categoria on processos (categoria);
 -- -------------------------------------------------------------
 create table determinacoes (
   id uuid primary key default gen_random_uuid(),
-  processo_id uuid not null references processos(id),
+  -- cascade: excluir um processo leva junto suas determinações
+  processo_id uuid not null references processos(id) on delete cascade,
   tipo text not null check (
     tipo in ('recolhimento_uniao', 'aplicacao_politica_mulher', 'aplicacao_minorias', 'multa', 'outra')
   ),
@@ -203,7 +206,8 @@ create index idx_determinacoes_responsavel on determinacoes (responsavel_id);
 create table perfil_escopos (
   id uuid primary key default gen_random_uuid(),
   perfil_id uuid not null references perfis(id) on delete cascade,
-  cliente_id uuid not null references clientes(id),
+  -- cascade: excluir um cliente limpa qualquer escopo extra apontando pra ele
+  cliente_id uuid not null references clientes(id) on delete cascade,
   nivel_acesso text not null default 'total' check (
     nivel_acesso in ('total', 'prestacao_contas', 'leitura')
   ),

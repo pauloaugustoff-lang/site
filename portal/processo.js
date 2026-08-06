@@ -300,6 +300,22 @@
 
     document.querySelector("[data-cancelar-edicao-determinacao]").addEventListener("click", resetFormularioDeterminacao);
 
+    document.querySelector("[data-excluir-processo]").addEventListener("click", async function () {
+      var ok = await BF.confirmar(
+        "Isso exclui o processo, todas as determinações e documentos vinculados a ele. Não é possível desfazer.",
+        { titulo: "Excluir processo?", textoConfirmar: "Excluir processo" }
+      );
+      if (!ok) return;
+      setMsg("excluir-processo", "Excluindo…", false);
+      var { error } = await bfSupabase.from("processos").delete().eq("id", processoId);
+      if (error) {
+        console.error(error);
+        setMsg("excluir-processo", "Erro ao excluir: " + error.message, true);
+        return;
+      }
+      window.location.href = clienteId ? "cliente.html?id=" + clienteId : "clientes.html";
+    });
+
     document.querySelector("[data-determinacoes-resumo]").addEventListener("click", async function (e) {
       var editarId = e.target.getAttribute("data-editar-determinacao");
       var cumpridaId = e.target.getAttribute("data-marcar-cumprida");
