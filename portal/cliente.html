@@ -88,7 +88,9 @@
           </div>
           <div class="field" data-campo-municipio hidden>
             <label for="edit-municipio">Município</label>
-            <input type="text" id="edit-municipio" placeholder="Ex: Salvador">
+            <select id="edit-municipio" disabled>
+              <option value="">— selecione a UF primeiro —</option>
+            </select>
           </div>
 
           <div class="field" data-campo-cargo hidden>
@@ -108,6 +110,10 @@
             <label for="edit-nome-gerado">Nome do cliente (gerado automaticamente)</label>
             <input type="text" id="edit-nome-gerado" readonly>
             <p class="field-hint" data-hierarquia-hint-edit></p>
+          </div>
+          <div class="field" data-campo-partido-cnpj hidden>
+            <label for="edit-partido-cnpj">CNPJ do partido</label>
+            <input type="text" id="edit-partido-cnpj" placeholder="Opcional">
           </div>
         </form>
         <div class="portal-form-actions">

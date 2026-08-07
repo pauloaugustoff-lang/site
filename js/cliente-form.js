@@ -98,6 +98,49 @@
     return null;
   };
 
+  // Municípios por UF (API pública do IBGE) — cache em memória por sigla
+  // de UF, evita rebuscar a cada troca de categoria/UF.
+  var municipiosPorUF = {};
+  BF.buscarMunicipios = async function (uf) {
+    if (!uf) return [];
+    if (municipiosPorUF[uf]) return municipiosPorUF[uf];
+    try {
+      var resp = await fetch("https://servicodados.ibge.gov.br/api/v1/localidades/estados/" + uf + "/municipios");
+      if (!resp.ok) throw new Error("falha ao buscar municípios");
+      var data = await resp.json();
+      var nomes = data.map(function (m) { return m.nome; }).sort(function (a, b) { return a.localeCompare(b, "pt-BR"); });
+      municipiosPorUF[uf] = nomes;
+      return nomes;
+    } catch (err) {
+      console.error(err);
+      return [];
+    }
+  };
+
+  // Popula um <select> de município a partir da UF escolhida. Se
+  // valorSelecionado bater com um município da lista, já vem selecionado
+  // (usado ao carregar um cliente existente pra edição).
+  BF.carregarMunicipiosNoSelect = async function (selectId, uf, valorSelecionado) {
+    var sel = document.getElementById(selectId);
+    if (!uf) {
+      sel.innerHTML = '<option value="">— selecione a UF primeiro —</option>';
+      sel.disabled = true;
+      return;
+    }
+    sel.disabled = true;
+    sel.innerHTML = '<option value="">Carregando…</option>';
+    var lista = await BF.buscarMunicipios(uf);
+    if (!lista.length) {
+      sel.innerHTML = '<option value="">Não foi possível carregar — tente de novo</option>';
+      sel.disabled = false;
+      return;
+    }
+    sel.innerHTML = '<option value="">— selecione —</option>' +
+      lista.map(function (m) { return '<option value="' + m + '">' + m + "</option>"; }).join("");
+    sel.disabled = false;
+    if (valorSelecionado && lista.indexOf(valorSelecionado) !== -1) sel.value = valorSelecionado;
+  };
+
   BF.mascararDocumento = function (valor) {
     var digitos = valor.replace(/\D/g, "").slice(0, 14);
     if (digitos.length <= 11) {
@@ -221,10 +264,6 @@
           '<label for="bf-modal-partido-nome">Nome do partido</label>' +
           '<input type="text" id="bf-modal-partido-nome" placeholder="Nome completo">' +
         "</div>" +
-        '<div class="field">' +
-          '<label for="bf-modal-partido-cnpj">CNPJ</label>' +
-          '<input type="text" id="bf-modal-partido-cnpj" placeholder="Opcional">' +
-        "</div>" +
         '<div class="portal-modal-actions">' +
           '<span class="portal-inline-msg" data-msg="bf-modal-partido"></span>' +
           '<button type="button" class="btn btn-ghost-light" data-bf-modal-cancelar>Cancelar</button>' +
@@ -241,27 +280,22 @@
     var modal = garantirModal();
     var siglaEl = modal.querySelector("#bf-modal-partido-sigla");
     var nomeEl = modal.querySelector("#bf-modal-partido-nome");
-    var cnpjEl = modal.querySelector("#bf-modal-partido-cnpj");
     var msgEl = modal.querySelector('[data-msg="bf-modal-partido"]');
     var salvarBtn = modal.querySelector("[data-bf-modal-salvar]");
     var cancelarBtn = modal.querySelector("[data-bf-modal-cancelar]");
 
     siglaEl.value = "";
     nomeEl.value = "";
-    cnpjEl.value = "";
     msgEl.textContent = "";
     msgEl.classList.remove("is-error");
     modal.hidden = false;
     siglaEl.focus();
-
-    cnpjEl.oninput = function (e) { e.target.value = BF.mascararDocumento(e.target.value); };
 
     return new Promise(function (resolve) {
       function limpar() {
         salvarBtn.onclick = null;
         cancelarBtn.onclick = null;
         modal.onclick = null;
-        cnpjEl.oninput = null;
         modal.hidden = true;
       }
       cancelarBtn.onclick = function () { limpar(); resolve(null); };
@@ -269,7 +303,6 @@
       salvarBtn.onclick = async function () {
         var sigla = siglaEl.value.trim();
         var nome = nomeEl.value.trim();
-        var cnpj = cnpjEl.value.trim() || null;
         if (!sigla || !nome) {
           msgEl.textContent = "Preencha sigla e nome.";
           msgEl.classList.add("is-error");
@@ -279,7 +312,7 @@
         msgEl.textContent = "Salvando…";
         msgEl.classList.remove("is-error");
         try {
-          var partido = await BF.criarPartido(sigla, nome, cnpj);
+          var partido = await BF.criarPartido(sigla, nome);
           limpar();
           salvarBtn.disabled = false;
           resolve(partido);

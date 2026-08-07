@@ -4,7 +4,12 @@
   var estado = { categoria: null };
   var partidosCache = [];
   var partidoPicker = null;
-  var municipioDebounce = null;
+
+  function resetMunicipioSelect() {
+    var sel = document.getElementById("cad-municipio");
+    sel.innerHTML = '<option value="">— selecione a UF primeiro —</option>';
+    sel.disabled = true;
+  }
 
   var LABELS_NOME = { candidato: "Nome do candidato", pessoa_fisica: "Nome completo", pessoa_juridica: "Razão social" };
   var LABELS_DOC = { candidato: "CPF", pessoa_fisica: "CPF", pessoa_juridica: "CNPJ" };
@@ -47,6 +52,7 @@
     var municipio = val("cad-municipio");
     var nome = partido ? BF.gerarNomeCliente(partido.nome, inst, uf, municipio) : "";
     document.getElementById("cad-nome-gerado").value = nome;
+    document.getElementById("cad-partido-cnpj").value = partido && partido.cnpj ? partido.cnpj : "";
 
     var hint = document.querySelector("[data-hierarquia-hint]");
     hint.classList.remove("is-error");
@@ -82,6 +88,7 @@
     toggle("[data-campo-cargo-outro]", ehCandidato && document.getElementById("cad-cargo").value === "outro");
     toggle("[data-campo-ano]", ehCandidato);
     toggle("[data-campo-nome-gerado]", ehPartido);
+    toggle("[data-campo-partido-cnpj]", ehPartido);
 
     var precisaUf = (ehPartido && (inst === "diretorio_estadual" || inst === "diretorio_municipal"))
       || (ehCandidato && (escopo === "uf" || escopo === "municipio" || escopo === "livre"))
@@ -107,6 +114,7 @@
   function selecionarCategoria(cat) {
     document.getElementById("form-cliente-cadastro").reset();
     if (partidoPicker) partidoPicker.clear();
+    resetMunicipioSelect();
     document.querySelector("[data-hierarquia-hint]").textContent = "";
     estado.categoria = cat;
     document.querySelectorAll("[data-categoria-btn]").forEach(function (btn) {
@@ -119,6 +127,7 @@
   function resetFormulario() {
     document.getElementById("form-cliente-cadastro").reset();
     if (partidoPicker) partidoPicker.clear();
+    resetMunicipioSelect();
     document.querySelector("[data-hierarquia-hint]").textContent = "";
     document.querySelectorAll("[data-categoria-btn]").forEach(function (btn) { btn.classList.remove("is-active"); });
     document.querySelector("[data-secao-form]").hidden = true;
@@ -155,6 +164,12 @@
       payload.municipio = municipio;
       payload.nome = nome;
       payload.parent_id = superior ? superior.id : null;
+
+      var cnpjPartido = val("cad-partido-cnpj");
+      if (cnpjPartido && cnpjPartido !== partido.cnpj) {
+        var { error: cnpjError } = await bfSupabase.from("partidos").update({ cnpj: cnpjPartido }).eq("id", partido.id);
+        if (cnpjError) throw cnpjError;
+      }
     } else if (cat === "candidato") {
       var cargoValor = document.getElementById("cad-cargo").value;
       payload.tipo_cliente = "candidato";
@@ -191,6 +206,9 @@
     document.getElementById("cad-documento").addEventListener("input", function (e) {
       e.target.value = BF.mascararDocumento(e.target.value);
     });
+    document.getElementById("cad-partido-cnpj").addEventListener("input", function (e) {
+      e.target.value = BF.mascararDocumento(e.target.value);
+    });
 
     partidoPicker = BF.criarPartidoPicker({
       inputEl: document.getElementById("cad-partido-busca"),
@@ -209,11 +227,11 @@
     });
 
     document.getElementById("cad-instancia").addEventListener("change", atualizarCampos);
-    document.getElementById("cad-uf").addEventListener("change", atualizarNomeGeradoEHierarquia);
-    document.getElementById("cad-municipio").addEventListener("input", function () {
-      clearTimeout(municipioDebounce);
-      municipioDebounce = setTimeout(atualizarNomeGeradoEHierarquia, 350);
+    document.getElementById("cad-uf").addEventListener("change", async function () {
+      await BF.carregarMunicipiosNoSelect("cad-municipio", val("cad-uf"), null);
+      atualizarNomeGeradoEHierarquia();
     });
+    document.getElementById("cad-municipio").addEventListener("change", atualizarNomeGeradoEHierarquia);
     document.getElementById("cad-cargo").addEventListener("change", atualizarCampos);
 
     document.querySelector('[data-form="cliente-cadastro"]').addEventListener("submit", async function (e) {

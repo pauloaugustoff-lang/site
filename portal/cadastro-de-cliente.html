@@ -93,7 +93,9 @@
           </div>
           <div class="field" data-campo-municipio hidden>
             <label for="cad-municipio">Município</label>
-            <input type="text" id="cad-municipio" placeholder="Ex: Salvador">
+            <select id="cad-municipio" disabled>
+              <option value="">— selecione a UF primeiro —</option>
+            </select>
           </div>
 
           <div class="field" data-campo-cargo hidden>
@@ -113,6 +115,10 @@
             <label for="cad-nome-gerado">Nome do cliente (gerado automaticamente)</label>
             <input type="text" id="cad-nome-gerado" readonly>
             <p class="field-hint" data-hierarquia-hint></p>
+          </div>
+          <div class="field" data-campo-partido-cnpj hidden>
+            <label for="cad-partido-cnpj">CNPJ do partido</label>
+            <input type="text" id="cad-partido-cnpj" placeholder="Opcional">
           </div>
         </form>
         <div class="portal-form-actions">

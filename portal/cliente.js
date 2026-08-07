@@ -104,11 +104,10 @@
     if ([data.uf, data.municipio].filter(Boolean).length) partes.push([data.uf, data.municipio].filter(Boolean).join(" / "));
     document.querySelector("[data-cliente-info]").textContent = partes.length ? partes.join(" · ") : "Cliente sem categoria definida";
 
-    preencherFormularioEdicao(data);
+    await preencherFormularioEdicao(data);
   }
 
   var partidoPickerEdicao = null;
-  var editMunicipioDebounce = null;
 
   function partidoSelecionadoEdicao() {
     var id = val("edit-partido-id");
@@ -124,6 +123,7 @@
     var uf = val("edit-uf");
     var municipio = val("edit-municipio");
     document.getElementById("edit-nome-gerado").value = partido ? BF.gerarNomeCliente(partido.nome, tipo, uf, municipio) : "";
+    document.getElementById("edit-partido-cnpj").value = partido && partido.cnpj ? partido.cnpj : "";
 
     hint.textContent = "";
     if (!partido || tipo === "diretorio_nacional") return;
@@ -147,6 +147,7 @@
     document.querySelectorAll("[data-campo-documento]").forEach(function (el) { el.hidden = ehDiretorio; });
     document.querySelectorAll("[data-campo-partido]").forEach(function (el) { el.hidden = !(ehDiretorio || ehCandidato); });
     document.querySelectorAll("[data-campo-nome-gerado]").forEach(function (el) { el.hidden = !ehDiretorio; });
+    document.querySelectorAll("[data-campo-partido-cnpj]").forEach(function (el) { el.hidden = !ehDiretorio; });
     document.querySelectorAll("[data-campo-cargo]").forEach(function (el) { el.hidden = !ehCandidato; });
     document.querySelectorAll("[data-campo-cargo-outro]").forEach(function (el) {
       el.hidden = !(ehCandidato && document.getElementById("edit-cargo").value === "outro");
@@ -186,14 +187,14 @@
     partidosCache = data || [];
   }
 
-  function preencherFormularioEdicao(data) {
+  async function preencherFormularioEdicao(data) {
     document.getElementById("edit-nome").value = data.nome || "";
     document.getElementById("edit-documento").value = data.documento || "";
     document.getElementById("edit-tipo-cliente").value = data.tipo_cliente;
     var partido = data.partido_id ? partidosCache.filter(function (p) { return p.id === data.partido_id; })[0] : null;
     if (partidoPickerEdicao) partidoPickerEdicao.setValue(partido);
     document.getElementById("edit-uf").value = data.uf || "";
-    document.getElementById("edit-municipio").value = data.municipio || "";
+    await BF.carregarMunicipiosNoSelect("edit-municipio", data.uf, data.municipio);
     var cargoValor = BF.valorPorLabelCargo(data.cargo_disputado);
     document.getElementById("edit-cargo").value = cargoValor || (data.cargo_disputado ? "outro" : "");
     document.getElementById("edit-cargo-outro").value = cargoValor ? "" : (data.cargo_disputado || "");
@@ -273,6 +274,9 @@
     document.getElementById("edit-documento").addEventListener("input", function (e) {
       e.target.value = BF.mascararDocumento(e.target.value);
     });
+    document.getElementById("edit-partido-cnpj").addEventListener("input", function (e) {
+      e.target.value = BF.mascararDocumento(e.target.value);
+    });
 
     partidoPickerEdicao = BF.criarPartidoPicker({
       inputEl: document.getElementById("edit-partido-busca"),
@@ -291,11 +295,11 @@
     });
 
     document.getElementById("edit-tipo-cliente").addEventListener("change", atualizarCamposClienteEdicao);
-    document.getElementById("edit-uf").addEventListener("change", atualizarNomeGeradoEHierarquiaEdicao);
-    document.getElementById("edit-municipio").addEventListener("input", function () {
-      clearTimeout(editMunicipioDebounce);
-      editMunicipioDebounce = setTimeout(atualizarNomeGeradoEHierarquiaEdicao, 350);
+    document.getElementById("edit-uf").addEventListener("change", async function () {
+      await BF.carregarMunicipiosNoSelect("edit-municipio", val("edit-uf"), null);
+      atualizarNomeGeradoEHierarquiaEdicao();
     });
+    document.getElementById("edit-municipio").addEventListener("change", atualizarNomeGeradoEHierarquiaEdicao);
     document.getElementById("edit-cargo").addEventListener("change", atualizarCamposClienteEdicao);
 
     document.querySelector("[data-toggle-novo-processo]").addEventListener("click", function () {
@@ -360,6 +364,12 @@
         payload.municipio = municipio;
         payload.nome = nome;
         payload.parent_id = superior ? superior.id : null;
+
+        var cnpjPartido = val("edit-partido-cnpj");
+        if (cnpjPartido && cnpjPartido !== partido.cnpj) {
+          var { error: cnpjError } = await bfSupabase.from("partidos").update({ cnpj: cnpjPartido }).eq("id", partido.id);
+          if (cnpjError) throw cnpjError;
+        }
       } else if (ehCandidato) {
         var cargoValor = document.getElementById("edit-cargo").value;
         payload.nome = val("edit-nome");
