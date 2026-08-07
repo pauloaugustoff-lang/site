@@ -26,6 +26,37 @@
     return base;
   }
 
+  // Reordena a lista em ordem de árvore (pai antes dos filhos, como o
+  // "path" já garante), mas com os irmãos de cada nível em ordem
+  // alfabética — o "path" sozinho ordena por id (aleatório), não por nome.
+  function ordenarPorArvore(lista) {
+    var porPai = new Map();
+    lista.forEach(function (c) {
+      var chave = c.parent_id || null;
+      if (!porPai.has(chave)) porPai.set(chave, []);
+      porPai.get(chave).push(c);
+    });
+    porPai.forEach(function (filhos) {
+      filhos.sort(function (a, b) { return a.nome.localeCompare(b.nome, "pt-BR"); });
+    });
+
+    var resultado = [];
+    function visitar(paiId) {
+      (porPai.get(paiId) || []).forEach(function (c) {
+        resultado.push(c);
+        visitar(c.id);
+      });
+    }
+    visitar(null);
+
+    // segurança: se algum parent_id apontar pra fora da lista, não deixa
+    // o cliente sumir da tela
+    var vistos = new Set(resultado.map(function (c) { return c.id; }));
+    lista.forEach(function (c) { if (!vistos.has(c.id)) resultado.push(c); });
+
+    return resultado;
+  }
+
   function renderTabela(lista) {
     var tbody = document.querySelector('[data-list="clientes"]');
     if (!lista.length) {
@@ -66,7 +97,7 @@
         '<tr class="empty-row"><td colspan="4">Não foi possível carregar os clientes agora.</td></tr>';
       return;
     }
-    clientes = data || [];
+    clientes = ordenarPorArvore(data || []);
     aplicarFiltros();
   }
 
