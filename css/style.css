@@ -1052,7 +1052,7 @@ section{ padding: clamp(4.5rem, 9vw, 8rem) 0; }
   align-items: flex-end;
   margin-bottom: 1.6rem;
 }
-.portal-toolbar .field{ margin-top: 0; min-width: 11rem; flex: 1 1 11rem; }
+.portal-toolbar .field{ margin-top: 0; min-width: 9rem; flex: 0 1 9rem; }
 
 .field select{
   width: 100%;

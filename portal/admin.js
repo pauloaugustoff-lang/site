@@ -69,8 +69,10 @@
         valor: d.valor,
         prazo: d.prazo,
         status: d.status,
-        responsavelId: d.responsavel_id,
-        responsavelNome: d.perfis ? d.perfis.nome : null,
+        // a determinação não tem mais responsável próprio — reflete o
+        // responsável do processo, que é quem responde por ela na prática
+        responsavelId: pr.responsavel_id,
+        responsavelNome: pr.perfis ? pr.perfis.nome : null,
       };
     });
   }
@@ -93,13 +95,21 @@
   }
 
   function renderStats(lista) {
-    var pendentes = lista.filter(function (l) { return l.status === "pendente" && !isVencida(l); }).length;
+    var todosPendentes = lista.filter(function (l) { return l.status === "pendente"; });
+    var pendentes = todosPendentes.filter(function (l) { return !isVencida(l); }).length;
     var vencidas = lista.filter(isVencida).length;
     var cumpridas = lista.filter(function (l) { return l.status === "cumprida"; }).length;
+    var somaValor = function (tipo) {
+      return todosPendentes
+        .filter(function (l) { return l.tipo === tipo; })
+        .reduce(function (acc, l) { return acc + (Number(l.valor) || 0); }, 0);
+    };
     document.querySelector('[data-stat="total"]').textContent = lista.length;
     document.querySelector('[data-stat="pendentes"]').textContent = pendentes;
     document.querySelector('[data-stat="vencidas"]').textContent = vencidas;
     document.querySelector('[data-stat="cumpridas"]').textContent = cumpridas;
+    document.querySelector('[data-stat="valor-recolher"]').textContent = fmtMoeda(somaValor("recolhimento_uniao"));
+    document.querySelector('[data-stat="valor-politica-mulher"]').textContent = fmtMoeda(somaValor("aplicacao_politica_mulher"));
   }
 
   function renderDeterminacoesTabela(lista) {
@@ -142,7 +152,7 @@
   async function carregarDeterminacoes() {
     var { data, error } = await bfSupabase
       .from("determinacoes")
-      .select("*, perfis(nome), processos(categoria, ano, clientes(nome))")
+      .select("*, processos(categoria, ano, responsavel_id, clientes(nome), perfis(nome))")
       .order("prazo", { ascending: true, nullsFirst: false });
 
     if (error) {
@@ -251,7 +261,7 @@
   async function carregarMeusNumeros(meuId) {
     var [processosResp, determinacoesResp] = await Promise.all([
       bfSupabase.from("processos").select("id", { count: "exact", head: true }).eq("responsavel_id", meuId).eq("status", "em_andamento"),
-      bfSupabase.from("determinacoes").select("id", { count: "exact", head: true }).eq("responsavel_id", meuId).eq("status", "pendente"),
+      bfSupabase.from("determinacoes").select("id, processos!inner(responsavel_id)", { count: "exact", head: true }).eq("processos.responsavel_id", meuId).eq("status", "pendente"),
     ]);
     document.querySelector('[data-stat="meus-processos"]').textContent = processosResp.count === null ? "—" : processosResp.count;
     document.querySelector('[data-stat="minhas-determinacoes"]').textContent = determinacoesResp.count === null ? "—" : determinacoesResp.count;

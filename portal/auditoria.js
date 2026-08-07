@@ -9,7 +9,7 @@
       categoria: "Categoria", subcategoria: "Subcategoria", titulo: "Título",
       status: "Status", resultado: "Resultado", ano: "Ano", numero_processo: "Nº do processo",
       orgao_julgador: "Órgão julgador", foro: "Foro",
-      data_protocolo: "Data de protocolo", responsavel: "Responsável", responsavel_id: "Responsável",
+      data_protocolo: "Data de distribuição", responsavel: "Responsável", responsavel_id: "Responsável",
       houve_recurso: "Houve recurso", transito_julgado: "Trânsito em julgado",
       data_transito: "Data do trânsito", observacoes: "Observações",
       tipo: "Tipo", descricao: "Descrição", valor: "Valor", exercicio_cumprimento: "Exercício de cumprimento",

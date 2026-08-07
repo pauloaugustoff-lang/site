@@ -6,7 +6,7 @@
 <title>Pasta do cliente — Bessoni &amp; Fortes</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/png" href="../assets/img/bf-mark-navy.png">
-<link rel="stylesheet" href="../css/style.css?v=22">
+<link rel="stylesheet" href="../css/style.css?v=24">
 </head>
 <body>
 
@@ -128,6 +128,14 @@
 
         <div data-novo-processo-box hidden style="margin-top: 1.4rem; padding: 1.4rem; border: 1px dashed var(--mist);">
           <form class="form-grid" id="form-processo" data-form="processo">
+            <div class="field" style="grid-column: 1 / -1;">
+              <label for="proc-titulo">Título</label>
+              <input type="text" id="proc-titulo" placeholder="Ex: Prestação de contas 2020">
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+              <label for="proc-numero">Nº do processo</label>
+              <input type="text" id="proc-numero" required placeholder="Ex: 0000000-00.2020.6.00.0000">
+            </div>
             <div class="field">
               <label for="proc-categoria">Categoria</label>
               <select id="proc-categoria" required>
@@ -144,16 +152,8 @@
               <input type="text" id="proc-subcategoria" placeholder="Ex: Anual / Eleitoral">
             </div>
             <div class="field">
-              <label for="proc-titulo">Título</label>
-              <input type="text" id="proc-titulo" placeholder="Ex: Prestação de contas 2020">
-            </div>
-            <div class="field">
               <label for="proc-ano">Ano</label>
               <input type="number" id="proc-ano" placeholder="Ex: 2020" min="2000" max="2100">
-            </div>
-            <div class="field">
-              <label for="proc-numero">Nº do processo</label>
-              <input type="text" id="proc-numero" required placeholder="Ex: 0000000-00.2020.6.00.0000">
             </div>
             <div class="field">
               <label for="proc-orgaojulgador">Órgão julgador</label>
@@ -162,6 +162,10 @@
             <div class="field">
               <label for="proc-foro">Foro</label>
               <input type="text" id="proc-foro" placeholder="Opcional">
+            </div>
+            <div class="field">
+              <label for="proc-data-protocolo">Data de distribuição</label>
+              <input type="date" id="proc-data-protocolo">
             </div>
             <div class="field">
               <label for="proc-status">Status</label>
@@ -185,14 +189,6 @@
               <label for="proc-resultado-texto">Resultado</label>
               <input type="text" id="proc-resultado-texto" placeholder="Ex: Deferido / Indeferido / Procedente...">
             </div>
-            <div class="field">
-              <label for="proc-data-protocolo">Data de protocolo</label>
-              <input type="date" id="proc-data-protocolo">
-            </div>
-            <div class="field">
-              <label for="proc-responsavel">Advogado responsável</label>
-              <select id="proc-responsavel"><option value="">— não atribuído —</option></select>
-            </div>
             <div class="field" data-campo-contas hidden>
               <label for="proc-houve-recurso">Houve recurso?</label>
               <select id="proc-houve-recurso">
@@ -212,6 +208,10 @@
             <div class="field" data-campo-contas hidden>
               <label for="proc-data-transito">Data do trânsito em julgado</label>
               <input type="date" id="proc-data-transito">
+            </div>
+            <div class="field">
+              <label for="proc-responsavel">Advogado responsável</label>
+              <select id="proc-responsavel"><option value="">— não atribuído —</option></select>
             </div>
           </form>
           <div class="portal-form-actions">

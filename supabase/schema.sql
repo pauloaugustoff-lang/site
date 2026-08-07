@@ -192,8 +192,10 @@ create table perfis (
 
 -- só agora que perfis existe: advogado responsável pelo processo, e quem
 -- cuida do cumprimento de cada determinação (papéis independentes)
-alter table processos add column responsavel_id uuid references perfis(id);
-alter table determinacoes add column responsavel_id uuid references perfis(id);
+-- set null: excluir o login do advogado não pode travar nem apagar o
+-- processo/determinação, só some a atribuição (fica "não atribuído")
+alter table processos add column responsavel_id uuid references perfis(id) on delete set null;
+alter table determinacoes add column responsavel_id uuid references perfis(id) on delete set null;
 create index idx_processos_responsavel on processos (responsavel_id);
 create index idx_determinacoes_responsavel on determinacoes (responsavel_id);
 
@@ -230,7 +232,7 @@ create table documentos (
   storage_path text not null, -- caminho dentro do bucket, começa com processo_id/
   tamanho bigint,
   tipo_mime text,
-  enviado_por uuid references perfis(id),
+  enviado_por uuid references perfis(id) on delete set null,
   created_at timestamptz not null default now()
 );
 
@@ -389,7 +391,7 @@ create table auditoria (
   id uuid primary key default gen_random_uuid(),
   tabela text not null,
   registro_id uuid not null,
-  perfil_id uuid references perfis(id),
+  perfil_id uuid references perfis(id) on delete set null,
   campo text not null,
   valor_anterior text,
   valor_novo text,

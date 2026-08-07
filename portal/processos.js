@@ -37,8 +37,9 @@
       return;
     }
     tbody.innerHTML = lista.map(function (p) {
+      var titulo = p.titulo || (LABELS.categoria[p.categoria] + (p.ano ? " · " + p.ano : ""));
       return "<tr>" +
-        '<td><a class="portal-inline-link" href="' + linkProcesso(p) + '">' + (p.clientes ? p.clientes.nome : "—") + "</a></td>" +
+        '<td><a class="portal-inline-link" href="' + linkProcesso(p) + '">' + titulo + "</a></td>" +
         "<td>" + (LABELS.categoria[p.categoria] || p.categoria) + "</td>" +
         "<td>" + (p.ano || "—") + "</td>" +
         "<td>" + (LABELS.status[p.status] || p.status) + "</td>" +

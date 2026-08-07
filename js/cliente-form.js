@@ -113,6 +113,26 @@
       .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
   };
 
+  // Máscara de valor monetário (R$ 1.234,56). formatarMoeda: número -> texto
+  // (para preencher um campo ao editar). mascararMoeda: usada no evento
+  // "input", reconstrói o valor formatado a cada dígito digitado.
+  // desmascararMoeda: texto formatado -> número (pra mandar pro banco).
+  BF.formatarMoeda = function (numero) {
+    if (numero === null || numero === undefined || isNaN(numero)) return "";
+    var partes = Number(numero).toFixed(2).split(".");
+    var inteiro = partes[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return "R$ " + inteiro + "," + partes[1];
+  };
+  BF.mascararMoeda = function (valorDigitado) {
+    var digitos = String(valorDigitado || "").replace(/\D/g, "");
+    if (!digitos) return "";
+    return BF.formatarMoeda(parseInt(digitos, 10) / 100);
+  };
+  BF.desmascararMoeda = function (valorMascarado) {
+    var digitos = String(valorMascarado || "").replace(/\D/g, "");
+    return digitos ? parseInt(digitos, 10) / 100 : null;
+  };
+
   BF.criarPartido = async function (sigla, nome) {
     var { data, error } = await bfSupabase.from("partidos").insert({ sigla: sigla, nome: nome }).select().single();
     if (error) throw error;

@@ -119,7 +119,6 @@
     var options = '<option value="">— não atribuído —</option>' +
       advogadosCache.map(function (a) { return '<option value="' + a.id + '">' + a.nome + "</option>"; }).join("");
     document.getElementById("proc-responsavel").innerHTML = options;
-    document.getElementById("determinacao-responsavel").innerHTML = options;
   }
 
   function preencherFormulario(p) {
@@ -207,7 +206,6 @@
             '<div class="t">' + LABELS.tipoDeterminacao[d.tipo] + " " + statusBadge(d.status, d.prazo) + "</div>" +
             '<div class="d">' + d.descricao + "</div>" +
             '<div class="d">' + fmtMoeda(d.valor) + " · prazo " + fmtData(d.prazo) + "</div>" +
-            '<div class="d">Responsável: ' + (d.perfis ? d.perfis.nome : "não atribuído") + "</div>" +
             '<div class="d" style="margin-top:.5rem; display:flex; gap:.9rem;">' +
               '<button type="button" class="portal-inline-link" data-editar-determinacao="' + d.id + '">Editar</button>' +
               (d.status === "pendente"
@@ -267,11 +265,9 @@
   function preencherFormularioDeterminacao(d) {
     document.getElementById("determinacao-tipo").value = d.tipo;
     document.getElementById("determinacao-descricao").value = d.descricao || "";
-    document.getElementById("determinacao-valor").value = d.valor === null ? "" : d.valor;
+    document.getElementById("determinacao-valor").value = d.valor === null ? "" : BF.formatarMoeda(d.valor);
     document.getElementById("determinacao-exercicio-cumprimento").value = d.exercicio_cumprimento || "";
     document.getElementById("determinacao-prazo").value = d.prazo || "";
-    document.getElementById("determinacao-responsavel").value = d.responsavel_id || "";
-    document.getElementById("determinacao-data-transito").value = d.data_transito_julgado || "";
     document.getElementById("determinacao-status").value = d.status || "pendente";
     document.getElementById("determinacao-data-cumprimento").value = d.data_cumprimento || "";
     document.getElementById("determinacao-observacoes").value = d.observacoes || "";
@@ -297,6 +293,10 @@
     document.getElementById("proc-categoria").addEventListener("change", atualizarCampoResultado);
     document.getElementById("determinacao-status").addEventListener("change", atualizarCampoCumprimento);
     atualizarCampoCumprimento();
+
+    document.getElementById("determinacao-valor").addEventListener("input", function (e) {
+      e.target.value = BF.mascararMoeda(e.target.value);
+    });
 
     document.querySelector("[data-cancelar-edicao-determinacao]").addEventListener("click", resetFormularioDeterminacao);
 
@@ -375,11 +375,9 @@
         processo_id: processoId,
         tipo: val("determinacao-tipo"),
         descricao: val("determinacao-descricao"),
-        valor: val("determinacao-valor") ? Number(val("determinacao-valor")) : null,
+        valor: BF.desmascararMoeda(val("determinacao-valor")),
         exercicio_cumprimento: val("determinacao-exercicio-cumprimento") ? Number(val("determinacao-exercicio-cumprimento")) : null,
         prazo: val("determinacao-prazo"),
-        responsavel_id: val("determinacao-responsavel"),
-        data_transito_julgado: val("determinacao-data-transito"),
         status: status,
         data_cumprimento: status === "cumprida" ? val("determinacao-data-cumprimento") : null,
         observacoes: val("determinacao-observacoes"),

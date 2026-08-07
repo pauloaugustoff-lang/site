@@ -6,7 +6,7 @@
 <title>Processo — Bessoni &amp; Fortes</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/png" href="../assets/img/bf-mark-navy.png">
-<link rel="stylesheet" href="../css/style.css?v=22">
+<link rel="stylesheet" href="../css/style.css?v=24">
 </head>
 <body>
 
@@ -51,6 +51,14 @@
             <h2>Dados do processo</h2>
 
             <form class="form-grid" id="form-processo" data-form="processo">
+              <div class="field" style="grid-column: 1 / -1;">
+                <label for="proc-titulo">Título</label>
+                <input type="text" id="proc-titulo" placeholder="Ex: Prestação de contas 2020">
+              </div>
+              <div class="field" style="grid-column: 1 / -1;">
+                <label for="proc-numero">Nº do processo</label>
+                <input type="text" id="proc-numero" required placeholder="Ex: 0000000-00.2020.6.00.0000">
+              </div>
               <div class="field">
                 <label for="proc-categoria">Categoria</label>
                 <select id="proc-categoria" required>
@@ -67,16 +75,8 @@
                 <input type="text" id="proc-subcategoria" placeholder="Ex: Anual / Eleitoral">
               </div>
               <div class="field">
-                <label for="proc-titulo">Título</label>
-                <input type="text" id="proc-titulo" placeholder="Ex: Prestação de contas 2020">
-              </div>
-              <div class="field">
                 <label for="proc-ano">Ano</label>
                 <input type="number" id="proc-ano" placeholder="Ex: 2020" min="2000" max="2100">
-              </div>
-              <div class="field">
-                <label for="proc-numero">Nº do processo</label>
-                <input type="text" id="proc-numero" required placeholder="Ex: 0000000-00.2020.6.00.0000">
               </div>
               <div class="field">
                 <label for="proc-orgaojulgador">Órgão julgador</label>
@@ -85,6 +85,10 @@
               <div class="field">
                 <label for="proc-foro">Foro</label>
                 <input type="text" id="proc-foro" placeholder="Opcional">
+              </div>
+              <div class="field">
+                <label for="proc-data-protocolo">Data de distribuição</label>
+                <input type="date" id="proc-data-protocolo">
               </div>
               <div class="field">
                 <label for="proc-status">Status</label>
@@ -107,10 +111,6 @@
               <div class="field" data-resultado-texto-wrap hidden>
                 <label for="proc-resultado-texto">Resultado</label>
                 <input type="text" id="proc-resultado-texto" placeholder="Ex: Deferido / Indeferido / Procedente...">
-              </div>
-              <div class="field">
-                <label for="proc-data-protocolo">Data de protocolo</label>
-                <input type="date" id="proc-data-protocolo">
               </div>
               <div class="field" data-campo-contas hidden>
                 <label for="proc-houve-recurso">Houve recurso?</label>
@@ -178,7 +178,7 @@
               </div>
               <div class="field">
                 <label for="determinacao-valor">Valor (R$)</label>
-                <input type="number" id="determinacao-valor" step="0.01" min="0" placeholder="Opcional">
+                <input type="text" inputmode="decimal" id="determinacao-valor" placeholder="R$ 0,00">
               </div>
               <div class="field">
                 <label for="determinacao-exercicio-cumprimento">Exercício de cumprimento</label>
@@ -187,14 +187,6 @@
               <div class="field">
                 <label for="determinacao-prazo">Prazo</label>
                 <input type="date" id="determinacao-prazo">
-              </div>
-              <div class="field">
-                <label for="determinacao-responsavel">Responsável pelo cumprimento</label>
-                <select id="determinacao-responsavel"><option value="">— não atribuído —</option></select>
-              </div>
-              <div class="field">
-                <label for="determinacao-data-transito">Data do trânsito em julgado</label>
-                <input type="date" id="determinacao-data-transito">
               </div>
               <div class="field">
                 <label for="determinacao-status">Status</label>
