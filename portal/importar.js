@@ -21,6 +21,8 @@
     "cnpj": "documento",
     "nome do partido": "nomePartido",
     "partido": "nomePartido",
+    "sigla do partido": "siglaPartido",
+    "sigla": "siglaPartido",
     "tipo de cliente": "tipoCliente",
     "instancia partidaria": "tipoCliente",
     "nivel": "tipoCliente", // alias antigo (modelo pré-v3)
@@ -214,6 +216,7 @@
         nomeCliente: texto(pega(linha, "nomeCliente")),
         documento: texto(pega(linha, "documento")),
         nomePartido: texto(pega(linha, "nomePartido")),
+        siglaPartido: texto(pega(linha, "siglaPartido")),
         tipoCliente: texto(pega(linha, "tipoCliente")),
         uf: texto(pega(linha, "uf")),
         municipio: texto(pega(linha, "municipio")),
@@ -301,7 +304,7 @@
     return id;
   }
 
-  async function resolverPartido(nome, caches, avisos, numeroLinha) {
+  async function resolverPartido(nome, sigla, caches, avisos, numeroLinha) {
     if (!nome) return null;
     var chave = normalizar(nome);
     if (caches.partidos.has(chave)) return caches.partidos.get(chave);
@@ -312,7 +315,12 @@
       return existente.data;
     }
 
-    var criado = await bfSupabase.from("partidos").insert({ nome: nome }).select("id, nome").single();
+    if (!sigla) {
+      avisos.push("Linha " + numeroLinha + ": partido '" + nome + "' ainda não cadastrado e sem Sigla na planilha — não deu pra criar (sigla é obrigatória). Linha ignorada.");
+      return null;
+    }
+
+    var criado = await bfSupabase.from("partidos").insert({ nome: nome, sigla: sigla }).select("id, nome").single();
     if (criado.error) {
       avisos.push("Linha " + numeroLinha + ": erro ao criar partido '" + nome + "' — " + criado.error.message);
       return null;
@@ -522,7 +530,7 @@
         resultado = l.resultado; // sem lista fechada do sistema para as outras categorias
       }
 
-      var partido = await resolverPartido(l.nomePartido, caches, avisos, l.numeroLinha);
+      var partido = await resolverPartido(l.nomePartido, l.siglaPartido, caches, avisos, l.numeroLinha);
       var clienteId = await resolverCliente(l, partido, caches, avisos);
       if (!clienteId) continue;
 
@@ -578,24 +586,24 @@
 
   function baixarModelo() {
     var cabecalho = [
-      "Nome do Cliente", "Nome do Partido", "Instância Partidária", "UF", "Município", "Cargo Pretendido", "Ano da Eleição",
+      "Nome do Cliente", "Nome do Partido", "Sigla do Partido", "Instância Partidária", "UF", "Município", "Cargo Pretendido", "Ano da Eleição",
       "Categoria", "Subcategoria", "Título", "Ano", "Processo (nº)", "Órgão Julgador", "Status", "Resultado",
       "Houve recurso?", "Trânsito em julgado?", "Data do trânsito em julgado", "Advogado Responsável",
     ];
     var linhas = [
       cabecalho,
       [
-        "", "Partido Exemplo", "Nacional", "", "", "", "",
+        "", "Partido Exemplo", "PEX", "Nacional", "", "", "", "",
         "Prestação de Contas", "Anual", "Prestação de contas 2020", 2020, "0000000-00.2020.6.00.0000", "TSE", "Concluído", "Não prestadas",
         "Não", "Sim", new Date(2021, 8, 10), "Paulo Fortes",
       ],
       [
-        "", "Partido Exemplo", "Estadual", "BA", "", "", "",
+        "", "Partido Exemplo", "PEX", "Estadual", "BA", "", "", "",
         "AIJE", "", "Investigação judicial eleitoral", 2022, "0000001-11.2022.6.05.0000", "TRE-BA", "Em andamento", "",
         "", "", "", "Paulo Fortes",
       ],
       [
-        "Maria da Silva", "Partido Exemplo", "Candidato", "BA", "Salvador", "Prefeito", 2024,
+        "Maria da Silva", "Partido Exemplo", "PEX", "Candidato", "BA", "Salvador", "Prefeito", 2024,
         "Registro de Candidatura", "", "RCAND 2024", 2024, "0000002-22.2024.6.05.0000", "TRE-BA", "Em andamento", "",
         "", "", "", "Paulo Fortes",
       ],
