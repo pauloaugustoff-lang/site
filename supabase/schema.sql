@@ -42,6 +42,7 @@ create table partidos (
   id uuid primary key default gen_random_uuid(),
   sigla text, -- opcional (pode não vir em importações de planilha)
   nome text not null,
+  cnpj text, -- opcional
   created_at timestamptz not null default now()
 );
 

@@ -46,7 +46,7 @@
       <section class="portal-section">
         <h2>1 · Colunas esperadas</h2>
         <p class="portal-section-desc">
-          Nome do Cliente · Nome do Partido · Sigla do Partido · Instância Partidária · UF · Município · Cargo Pretendido · Ano da Eleição ·
+          Nome do Cliente · Nome do Partido · Sigla do Partido · CNPJ do Partido · Instância Partidária · UF · Município · Cargo Pretendido · Ano da Eleição ·
           Categoria · Subcategoria · Título · Ano · Processo (nº) · Órgão Julgador · Status · Resultado ·
           Houve recurso? · Trânsito em julgado? · Data do trânsito em julgado · Advogado Responsável
         </p>
@@ -58,7 +58,8 @@
           automaticamente</strong> a partir do Nome do Partido + Instância + UF/Município, do mesmo jeito que no
           cadastro manual (não precisa preencher, e se preencher é ignorado). Se o partido já existir (por nome),
           a <strong>Sigla do Partido</strong> pode ficar em branco; se for um partido novo, a sigla é obrigatória
-          pra criar (mesma regra do cadastro manual) — sem ela, a linha é ignorada. A instância superior de cada
+          pra criar (mesma regra do cadastro manual) — sem ela, a linha é ignorada. <strong>CNPJ do Partido</strong>
+          é sempre opcional. A instância superior de cada
           diretório também é encontrada sozinha (Nacional do mesmo partido, ou Estadual da mesma UF) — não existe
           mais coluna de "Cliente Superior"; se ainda não existir, a linha é importada sem hierarquia e você liga
           depois pela tela. "Cargo Pretendido" e "Ano da Eleição" só valem para Candidato. "Advogado Responsável"

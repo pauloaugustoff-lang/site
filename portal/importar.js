@@ -23,6 +23,7 @@
     "partido": "nomePartido",
     "sigla do partido": "siglaPartido",
     "sigla": "siglaPartido",
+    "cnpj do partido": "cnpjPartido",
     "tipo de cliente": "tipoCliente",
     "instancia partidaria": "tipoCliente",
     "nivel": "tipoCliente", // alias antigo (modelo pré-v3)
@@ -217,6 +218,7 @@
         documento: texto(pega(linha, "documento")),
         nomePartido: texto(pega(linha, "nomePartido")),
         siglaPartido: texto(pega(linha, "siglaPartido")),
+        cnpjPartido: texto(pega(linha, "cnpjPartido")),
         tipoCliente: texto(pega(linha, "tipoCliente")),
         uf: texto(pega(linha, "uf")),
         municipio: texto(pega(linha, "municipio")),
@@ -304,7 +306,7 @@
     return id;
   }
 
-  async function resolverPartido(nome, sigla, caches, avisos, numeroLinha) {
+  async function resolverPartido(nome, sigla, cnpj, caches, avisos, numeroLinha) {
     if (!nome) return null;
     var chave = normalizar(nome);
     if (caches.partidos.has(chave)) return caches.partidos.get(chave);
@@ -320,7 +322,7 @@
       return null;
     }
 
-    var criado = await bfSupabase.from("partidos").insert({ nome: nome, sigla: sigla }).select("id, nome").single();
+    var criado = await bfSupabase.from("partidos").insert({ nome: nome, sigla: sigla, cnpj: cnpj || null }).select("id, nome").single();
     if (criado.error) {
       avisos.push("Linha " + numeroLinha + ": erro ao criar partido '" + nome + "' — " + criado.error.message);
       return null;
@@ -530,7 +532,7 @@
         resultado = l.resultado; // sem lista fechada do sistema para as outras categorias
       }
 
-      var partido = await resolverPartido(l.nomePartido, l.siglaPartido, caches, avisos, l.numeroLinha);
+      var partido = await resolverPartido(l.nomePartido, l.siglaPartido, l.cnpjPartido, caches, avisos, l.numeroLinha);
       var clienteId = await resolverCliente(l, partido, caches, avisos);
       if (!clienteId) continue;
 
@@ -586,24 +588,24 @@
 
   function baixarModelo() {
     var cabecalho = [
-      "Nome do Cliente", "Nome do Partido", "Sigla do Partido", "Instância Partidária", "UF", "Município", "Cargo Pretendido", "Ano da Eleição",
+      "Nome do Cliente", "Nome do Partido", "Sigla do Partido", "CNPJ do Partido", "Instância Partidária", "UF", "Município", "Cargo Pretendido", "Ano da Eleição",
       "Categoria", "Subcategoria", "Título", "Ano", "Processo (nº)", "Órgão Julgador", "Status", "Resultado",
       "Houve recurso?", "Trânsito em julgado?", "Data do trânsito em julgado", "Advogado Responsável",
     ];
     var linhas = [
       cabecalho,
       [
-        "", "Partido Exemplo", "PEX", "Nacional", "", "", "", "",
+        "", "Partido Exemplo", "PEX", "00.000.000/0001-00", "Nacional", "", "", "", "",
         "Prestação de Contas", "Anual", "Prestação de contas 2020", 2020, "0000000-00.2020.6.00.0000", "TSE", "Concluído", "Não prestadas",
         "Não", "Sim", new Date(2021, 8, 10), "Paulo Fortes",
       ],
       [
-        "", "Partido Exemplo", "PEX", "Estadual", "BA", "", "", "",
+        "", "Partido Exemplo", "PEX", "", "Estadual", "BA", "", "", "",
         "AIJE", "", "Investigação judicial eleitoral", 2022, "0000001-11.2022.6.05.0000", "TRE-BA", "Em andamento", "",
         "", "", "", "Paulo Fortes",
       ],
       [
-        "Maria da Silva", "Partido Exemplo", "PEX", "Candidato", "BA", "Salvador", "Prefeito", 2024,
+        "Maria da Silva", "Partido Exemplo", "PEX", "", "Candidato", "BA", "Salvador", "Prefeito", 2024,
         "Registro de Candidatura", "", "RCAND 2024", 2024, "0000002-22.2024.6.05.0000", "TRE-BA", "Em andamento", "",
         "", "", "", "Paulo Fortes",
       ],
