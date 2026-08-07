@@ -169,6 +169,32 @@
     renderClientesPendencias();
   }
 
+  function setStatComRotulo(key, valor, rotulo) {
+    var el = document.querySelector('[data-stat="' + key + '"]');
+    if (!el) return;
+    el.textContent = valor;
+    var labelEl = el.parentElement.querySelector(".label");
+    if (labelEl) labelEl.textContent = rotulo;
+  }
+
+  function renderPrestacaoContas(lista) {
+    var contas = lista.filter(function (p) { return p.categoria === "prestacao_contas"; });
+    var aprovadas = contas.filter(function (p) { return p.resultado === "aprovadas"; });
+    var ressalvas = contas.filter(function (p) { return p.resultado === "aprovadas_com_ressalvas"; });
+    var desaprovadas = contas.filter(function (p) { return p.resultado === "desaprovadas"; });
+    var naoPrestadas = contas.filter(function (p) { return p.resultado === "nao_prestadas"; });
+    // "julgadas" = tem resultado definido — não conta as que ainda aguardam julgamento
+    var julgadas = aprovadas.length + ressalvas.length + desaprovadas.length + naoPrestadas.length;
+    function rotuloPct(base, n) {
+      return julgadas ? base + " · " + Math.round((n / julgadas) * 100) + "%" : base;
+    }
+    document.querySelector('[data-stat="pc-total"]').textContent = contas.length;
+    setStatComRotulo("pc-aprovadas", aprovadas.length, rotuloPct("Aprovadas", aprovadas.length));
+    setStatComRotulo("pc-ressalvas", ressalvas.length, rotuloPct("Aprovadas com ressalvas", ressalvas.length));
+    setStatComRotulo("pc-desaprovadas", desaprovadas.length, rotuloPct("Desaprovadas", desaprovadas.length));
+    setStatComRotulo("pc-nao-prestadas", naoPrestadas.length, rotuloPct("Não prestadas", naoPrestadas.length));
+  }
+
   function contagemPor(lista, chaveFn) {
     var mapa = new Map();
     lista.forEach(function (item) {
@@ -216,7 +242,7 @@
   async function carregarDashboardProcessos() {
     var { data, error } = await bfSupabase
       .from("processos")
-      .select("categoria, status, perfis(nome), clientes(uf, partido_id, partidos(sigla, nome))");
+      .select("categoria, status, resultado, perfis(nome), clientes(uf, partido_id, partidos(sigla, nome))");
 
     if (error) {
       console.error(error);
@@ -226,6 +252,8 @@
       return;
     }
     processosDashboard = data || [];
+
+    renderPrestacaoContas(processosDashboard);
 
     renderStatRows(
       "[data-por-categoria]",

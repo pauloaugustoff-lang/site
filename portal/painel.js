@@ -84,16 +84,27 @@
       '<option value="">Todos</option>' + exercicios.map(function (e) { return '<option value="' + e + '">' + e + "</option>"; }).join("");
   }
 
-  function setStat(key, valor) {
+  function setStat(key, valor, rotuloComPct) {
     var el = document.querySelector('[data-stat="' + key + '"]');
-    if (el) el.textContent = valor;
+    if (!el) return;
+    el.textContent = valor;
+    if (rotuloComPct !== undefined) {
+      var labelEl = el.parentElement.querySelector(".label");
+      if (labelEl) labelEl.textContent = rotuloComPct;
+    }
   }
 
   function renderDashboardStats() {
     var contas = processosCache.filter(function (p) { return p.categoria === "prestacao_contas"; });
-    var aprovadas = contas.filter(function (p) { return p.resultado === "aprovadas" || p.resultado === "aprovadas_com_ressalvas"; });
+    var aprovadas = contas.filter(function (p) { return p.resultado === "aprovadas"; });
+    var ressalvas = contas.filter(function (p) { return p.resultado === "aprovadas_com_ressalvas"; });
     var desaprovadas = contas.filter(function (p) { return p.resultado === "desaprovadas"; });
     var naoPrestadas = contas.filter(function (p) { return p.resultado === "nao_prestadas"; });
+    // "julgadas" = tem resultado definido — não conta as que ainda aguardam julgamento
+    var julgadas = aprovadas.length + ressalvas.length + desaprovadas.length + naoPrestadas.length;
+    function rotuloPct(base, n) {
+      return julgadas ? base + " · " + Math.round((n / julgadas) * 100) + "%" : base;
+    }
     var andamento = processosCache.filter(function (p) { return p.status === "em_andamento"; });
 
     var pendentes = linhasDeterminacoes.filter(function (d) { return d.status === "pendente"; });
@@ -102,9 +113,10 @@
     var somaValor = function (lista) { return lista.reduce(function (acc, d) { return acc + (Number(d.valor) || 0); }, 0); };
 
     setStat("pc-total", contas.length);
-    setStat("pc-aprovadas", aprovadas.length);
-    setStat("pc-desaprovadas", desaprovadas.length);
-    setStat("pc-nao-prestadas", naoPrestadas.length);
+    setStat("pc-aprovadas", aprovadas.length, rotuloPct("Aprovadas", aprovadas.length));
+    setStat("pc-ressalvas", ressalvas.length, rotuloPct("Aprovadas com ressalvas", ressalvas.length));
+    setStat("pc-desaprovadas", desaprovadas.length, rotuloPct("Desaprovadas", desaprovadas.length));
+    setStat("pc-nao-prestadas", naoPrestadas.length, rotuloPct("Não prestadas", naoPrestadas.length));
     setStat("processos-andamento", andamento.length);
     setStat("determinacoes-pendentes", pendentes.length);
     setStat("recolhimentos-pendentes", recolhimentos.length);
