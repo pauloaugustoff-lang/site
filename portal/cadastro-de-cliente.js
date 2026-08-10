@@ -82,6 +82,7 @@
 
     toggle("[data-campo-nome]", ehCandidato || ehPF || ehPJ);
     toggle("[data-campo-documento]", ehCandidato || ehPF || ehPJ);
+    toggle("[data-campo-cnpj-campanha]", ehCandidato);
     toggle("[data-campo-partido]", ehPartido || ehCandidato);
     toggle("[data-campo-instancia]", ehPartido);
     toggle("[data-campo-cargo]", ehCandidato);
@@ -141,6 +142,7 @@
     var payload = {
       nome: null, documento: null, tipo_cliente: null, partido_id: null,
       uf: null, municipio: null, parent_id: null, cargo_disputado: null, ano_eleicao: null,
+      cnpj_campanha: null,
     };
 
     if (cat === "partido") {
@@ -175,6 +177,7 @@
       payload.tipo_cliente = "candidato";
       payload.nome = val("cad-nome");
       payload.documento = val("cad-documento");
+      payload.cnpj_campanha = val("cad-cnpj-campanha");
       var partidoCand = partidoSelecionado();
       payload.partido_id = partidoCand ? partidoCand.id : null;
       payload.cargo_disputado = cargoValor === "outro" ? val("cad-cargo-outro") : BF.labelCargo(cargoValor);
@@ -207,6 +210,9 @@
       e.target.value = BF.mascararDocumento(e.target.value);
     });
     document.getElementById("cad-partido-cnpj").addEventListener("input", function (e) {
+      e.target.value = BF.mascararDocumento(e.target.value);
+    });
+    document.getElementById("cad-cnpj-campanha").addEventListener("input", function (e) {
       e.target.value = BF.mascararDocumento(e.target.value);
     });
 

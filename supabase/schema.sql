@@ -66,6 +66,7 @@ create table clientes (
   parent_id uuid references clientes(id),
   cargo_disputado text,
   ano_eleicao int,
+  cnpj_campanha text, -- CNPJ de campanha do candidato, opcional (distinto do CNPJ do partido)
   -- caminho materializado dos ancestrais (ex: "id_nacional.id_estadual.id_municipal")
   -- mantido automaticamente pelo trigger abaixo — usado para consultas
   -- rápidas de "este cliente e tudo abaixo dele" sem precisar de CTE recursiva

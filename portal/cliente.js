@@ -145,6 +145,7 @@
 
     document.querySelectorAll("[data-campo-nome]").forEach(function (el) { el.hidden = ehDiretorio; });
     document.querySelectorAll("[data-campo-documento]").forEach(function (el) { el.hidden = ehDiretorio; });
+    document.querySelectorAll("[data-campo-cnpj-campanha]").forEach(function (el) { el.hidden = !ehCandidato; });
     document.querySelectorAll("[data-campo-partido]").forEach(function (el) { el.hidden = !(ehDiretorio || ehCandidato); });
     document.querySelectorAll("[data-campo-nome-gerado]").forEach(function (el) { el.hidden = !ehDiretorio; });
     document.querySelectorAll("[data-campo-partido-cnpj]").forEach(function (el) { el.hidden = !ehDiretorio; });
@@ -190,6 +191,7 @@
   async function preencherFormularioEdicao(data) {
     document.getElementById("edit-nome").value = data.nome || "";
     document.getElementById("edit-documento").value = data.documento || "";
+    document.getElementById("edit-cnpj-campanha").value = data.cnpj_campanha || "";
     document.getElementById("edit-tipo-cliente").value = data.tipo_cliente;
     var partido = data.partido_id ? partidosCache.filter(function (p) { return p.id === data.partido_id; })[0] : null;
     if (partidoPickerEdicao) partidoPickerEdicao.setValue(partido);
@@ -277,6 +279,9 @@
     document.getElementById("edit-partido-cnpj").addEventListener("input", function (e) {
       e.target.value = BF.mascararDocumento(e.target.value);
     });
+    document.getElementById("edit-cnpj-campanha").addEventListener("input", function (e) {
+      e.target.value = BF.mascararDocumento(e.target.value);
+    });
 
     partidoPickerEdicao = BF.criarPartidoPicker({
       inputEl: document.getElementById("edit-partido-busca"),
@@ -348,7 +353,7 @@
         nome: null, documento: null, tipo_cliente: tipo,
         partido_id: partido ? partido.id : null,
         uf: null, municipio: null, parent_id: null,
-        cargo_disputado: null, ano_eleicao: null,
+        cargo_disputado: null, ano_eleicao: null, cnpj_campanha: null,
       };
 
       if (ehDiretorio) {
@@ -374,6 +379,7 @@
         var cargoValor = document.getElementById("edit-cargo").value;
         payload.nome = val("edit-nome");
         payload.documento = val("edit-documento");
+        payload.cnpj_campanha = val("edit-cnpj-campanha");
         payload.cargo_disputado = cargoValor === "outro" ? val("edit-cargo-outro") : BF.labelCargo(cargoValor);
         payload.ano_eleicao = val("edit-ano-eleicao") ? Number(val("edit-ano-eleicao")) : null;
         payload.uf = val("edit-uf");

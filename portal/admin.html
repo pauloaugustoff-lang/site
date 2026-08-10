@@ -56,7 +56,35 @@
 
       <section class="portal-section" style="margin-bottom: 2.5rem;">
         <h2>Prestação de contas</h2>
-        <p class="portal-section-desc">Todos os clientes. Porcentagem é sobre as já julgadas (com resultado definido).</p>
+        <p class="portal-section-desc">Porcentagem é sobre as já julgadas (com resultado definido).</p>
+
+        <div class="portal-toolbar" style="margin-bottom: 1.2rem;">
+          <div class="field">
+            <label for="pc-filtro-tipo">Tipo</label>
+            <select id="pc-filtro-tipo">
+              <option value="">Todos</option>
+              <option value="candidato">Candidato</option>
+              <option value="diretorio">Diretório</option>
+            </select>
+          </div>
+          <div class="field" data-pc-campo-subtipo hidden>
+            <label for="pc-filtro-subtipo">Anual/Eleitoral</label>
+            <select id="pc-filtro-subtipo"><option value="">Todos</option></select>
+          </div>
+          <div class="field">
+            <label for="pc-filtro-ano">Ano</label>
+            <select id="pc-filtro-ano"><option value="">Todos</option></select>
+          </div>
+          <div class="field">
+            <label for="pc-filtro-uf">UF</label>
+            <select id="pc-filtro-uf"><option value="">Todos</option></select>
+          </div>
+          <div class="field" data-pc-campo-municipio hidden>
+            <label for="pc-filtro-municipio">Cidade</label>
+            <select id="pc-filtro-municipio"><option value="">Todas</option></select>
+          </div>
+        </div>
+
         <div class="portal-stats">
           <div class="portal-stat">
             <span class="num" data-stat="pc-total">—</span>

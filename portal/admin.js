@@ -177,8 +177,45 @@
     if (labelEl) labelEl.textContent = rotulo;
   }
 
-  function renderPrestacaoContas(lista) {
-    var contas = lista.filter(function (p) { return p.categoria === "prestacao_contas"; });
+  var contasDashboard = [];
+
+  function achatarContas(lista) {
+    return lista
+      .filter(function (p) { return p.categoria === "prestacao_contas"; })
+      .map(function (p) {
+        var cliente = p.clientes || {};
+        return {
+          resultado: p.resultado,
+          ano: p.ano,
+          subcategoria: (p.subcategoria || "").trim(),
+          uf: cliente.uf || null,
+          municipio: cliente.municipio || null,
+          // prestação de contas só existe pra candidato ou diretório na
+          // prática — qualquer tipo_cliente que não seja "candidato" cai
+          // no balde "diretorio" (nacional/estadual/municipal)
+          tipoPrestador: cliente.tipo_cliente === "candidato" ? "candidato" : "diretorio",
+        };
+      });
+  }
+
+  function popularFiltrosPrestacaoContas() {
+    var subtipos = Array.from(new Set(
+      contasDashboard.filter(function (c) { return c.tipoPrestador === "diretorio" && c.subcategoria; })
+        .map(function (c) { return c.subcategoria; })
+    )).sort();
+    var anos = Array.from(new Set(contasDashboard.map(function (c) { return c.ano; }).filter(Boolean)))
+      .sort(function (a, b) { return b - a; });
+    var ufs = Array.from(new Set(contasDashboard.map(function (c) { return c.uf; }).filter(Boolean))).sort();
+
+    document.getElementById("pc-filtro-subtipo").innerHTML = '<option value="">Todos</option>' +
+      subtipos.map(function (s) { return '<option value="' + s + '">' + s + "</option>"; }).join("");
+    document.getElementById("pc-filtro-ano").innerHTML = '<option value="">Todos</option>' +
+      anos.map(function (a) { return '<option value="' + a + '">' + a + "</option>"; }).join("");
+    document.getElementById("pc-filtro-uf").innerHTML = '<option value="">Todos</option>' +
+      ufs.map(function (u) { return '<option value="' + u + '">' + u + "</option>"; }).join("");
+  }
+
+  function renderPrestacaoContasStats(contas) {
     var aprovadas = contas.filter(function (p) { return p.resultado === "aprovadas"; });
     var ressalvas = contas.filter(function (p) { return p.resultado === "aprovadas_com_ressalvas"; });
     var desaprovadas = contas.filter(function (p) { return p.resultado === "desaprovadas"; });
@@ -193,6 +230,52 @@
     setStatComRotulo("pc-ressalvas", ressalvas.length, rotuloPct("Aprovadas com ressalvas", ressalvas.length));
     setStatComRotulo("pc-desaprovadas", desaprovadas.length, rotuloPct("Desaprovadas", desaprovadas.length));
     setStatComRotulo("pc-nao-prestadas", naoPrestadas.length, rotuloPct("Não prestadas", naoPrestadas.length));
+  }
+
+  // Anual/Eleitoral só faz sentido pra diretório (candidato é sempre
+  // eleitoral) — o campo aparece/some conforme o Tipo escolhido.
+  // Cidade só aparece quando existe pelo menos um resultado com município
+  // no recorte atual (diretório municipal ou candidato de eleição
+  // municipal) — em vez de travar isso num cargo específico.
+  function aplicarFiltrosPrestacaoContas() {
+    var tipo = document.getElementById("pc-filtro-tipo").value;
+    var subtipo = document.getElementById("pc-filtro-subtipo").value;
+    var ano = document.getElementById("pc-filtro-ano").value;
+    var uf = document.getElementById("pc-filtro-uf").value;
+
+    document.querySelector("[data-pc-campo-subtipo]").hidden = tipo !== "diretorio";
+    if (tipo !== "diretorio" && subtipo) {
+      subtipo = "";
+      document.getElementById("pc-filtro-subtipo").value = "";
+    }
+
+    var semMunicipio = contasDashboard.filter(function (c) {
+      if (tipo && c.tipoPrestador !== tipo) return false;
+      if (subtipo && c.subcategoria !== subtipo) return false;
+      if (ano && String(c.ano) !== ano) return false;
+      if (uf && c.uf !== uf) return false;
+      return true;
+    });
+
+    var municipios = Array.from(new Set(semMunicipio.map(function (c) { return c.municipio; }).filter(Boolean)))
+      .sort(function (a, b) { return a.localeCompare(b, "pt-BR"); });
+    var campoMunicipio = document.querySelector("[data-pc-campo-municipio]");
+    var selectMunicipio = document.getElementById("pc-filtro-municipio");
+    campoMunicipio.hidden = municipios.length === 0;
+    var municipioAtual = selectMunicipio.value;
+    selectMunicipio.innerHTML = '<option value="">Todas</option>' +
+      municipios.map(function (m) { return '<option value="' + m + '">' + m + "</option>"; }).join("");
+    var municipio = municipios.indexOf(municipioAtual) !== -1 ? municipioAtual : "";
+    selectMunicipio.value = municipio;
+
+    var filtradas = municipio ? semMunicipio.filter(function (c) { return c.municipio === municipio; }) : semMunicipio;
+    renderPrestacaoContasStats(filtradas);
+  }
+
+  function iniciarFiltrosPrestacaoContas() {
+    ["pc-filtro-tipo", "pc-filtro-subtipo", "pc-filtro-ano", "pc-filtro-uf", "pc-filtro-municipio"].forEach(function (id) {
+      document.getElementById(id).addEventListener("change", aplicarFiltrosPrestacaoContas);
+    });
   }
 
   function contagemPor(lista, chaveFn) {
@@ -242,7 +325,7 @@
   async function carregarDashboardProcessos() {
     var { data, error } = await bfSupabase
       .from("processos")
-      .select("categoria, status, resultado, perfis(nome), clientes(uf, partido_id, partidos(sigla, nome))");
+      .select("categoria, status, resultado, ano, subcategoria, perfis(nome), clientes(uf, municipio, tipo_cliente, partido_id, partidos(sigla, nome))");
 
     if (error) {
       console.error(error);
@@ -253,7 +336,9 @@
     }
     processosDashboard = data || [];
 
-    renderPrestacaoContas(processosDashboard);
+    contasDashboard = achatarContas(processosDashboard);
+    popularFiltrosPrestacaoContas();
+    aplicarFiltrosPrestacaoContas();
 
     renderStatRows(
       "[data-por-categoria]",
@@ -311,6 +396,7 @@
     });
 
     iniciarFiltros();
+    iniciarFiltrosPrestacaoContas();
     await carregarAdvogados();
     await carregarMeusNumeros(session.user.id);
     await carregarDeterminacoes();
