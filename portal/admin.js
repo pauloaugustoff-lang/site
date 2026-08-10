@@ -65,6 +65,7 @@
         numeroProcesso: pr.numero_processo,
         clienteNome: cliente.nome || "—",
         categoria: pr.categoria || null,
+        subcategoria: pr.subcategoria || null,
         ano: pr.ano || null,
         tipo: d.tipo,
         descricao: d.descricao,
@@ -159,11 +160,13 @@
 
   function exportarRelatorioDeterminacoes() {
     var LABELS_STATUS_EXPORT = { pendente: "Pendente", vencida: "Vencida", cumprida: "Cumprida" };
-    var cabecalho = ["Cliente", "Categoria", "Tipo", "Descrição", "Valor", "Exercício", "Prazo", "Status", "Responsável"];
+    var cabecalho = ["Cliente", "Número do processo", "Categoria", "Anual/Eleitoral", "Tipo", "Descrição", "Valor", "Exercício", "Prazo", "Status", "Responsável"];
     var linhas = determinacoesFiltradas.map(function (l) {
       return [
         l.clienteNome,
+        l.numeroProcesso || "",
         LABELS.categoria[l.categoria] || l.categoria || "",
+        l.subcategoria || "",
         LABELS.tipoDeterminacao[l.tipo] || l.tipo,
         l.descricao || "",
         l.valor === null || l.valor === undefined ? "" : Number(l.valor),
@@ -184,7 +187,7 @@
   async function carregarDeterminacoes() {
     var { data, error } = await bfSupabase
       .from("determinacoes")
-      .select("*, processos(id, categoria, ano, numero_processo, responsavel_id, clientes(nome), perfis(nome))")
+      .select("*, processos(id, categoria, subcategoria, ano, numero_processo, responsavel_id, clientes(nome), perfis(nome))")
       .order("prazo", { ascending: true, nullsFirst: false });
 
     if (error) {
