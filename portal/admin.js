@@ -222,10 +222,13 @@
     var naoPrestadas = contas.filter(function (p) { return p.resultado === "nao_prestadas"; });
     // "julgadas" = tem resultado definido — não conta as que ainda aguardam julgamento
     var julgadas = aprovadas.length + ressalvas.length + desaprovadas.length + naoPrestadas.length;
+    var aguardando = contas.length - julgadas;
     function rotuloPct(base, n) {
       return julgadas ? base + " · " + Math.round((n / julgadas) * 100) + "%" : base;
     }
     document.querySelector('[data-stat="pc-total"]').textContent = contas.length;
+    setStatComRotulo("pc-aguardando", aguardando,
+      contas.length ? "Aguardando julgamento · " + Math.round((aguardando / contas.length) * 100) + "%" : "Aguardando julgamento");
     setStatComRotulo("pc-aprovadas", aprovadas.length, rotuloPct("Aprovadas", aprovadas.length));
     setStatComRotulo("pc-ressalvas", ressalvas.length, rotuloPct("Aprovadas com ressalvas", ressalvas.length));
     setStatComRotulo("pc-desaprovadas", desaprovadas.length, rotuloPct("Desaprovadas", desaprovadas.length));

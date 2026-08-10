@@ -102,6 +102,7 @@
     var naoPrestadas = contas.filter(function (p) { return p.resultado === "nao_prestadas"; });
     // "julgadas" = tem resultado definido — não conta as que ainda aguardam julgamento
     var julgadas = aprovadas.length + ressalvas.length + desaprovadas.length + naoPrestadas.length;
+    var aguardando = contas.length - julgadas;
     function rotuloPct(base, n) {
       return julgadas ? base + " · " + Math.round((n / julgadas) * 100) + "%" : base;
     }
@@ -113,6 +114,8 @@
     var somaValor = function (lista) { return lista.reduce(function (acc, d) { return acc + (Number(d.valor) || 0); }, 0); };
 
     setStat("pc-total", contas.length);
+    setStat("pc-aguardando", aguardando,
+      contas.length ? "Aguardando julgamento · " + Math.round((aguardando / contas.length) * 100) + "%" : "Aguardando julgamento");
     setStat("pc-aprovadas", aprovadas.length, rotuloPct("Aprovadas", aprovadas.length));
     setStat("pc-ressalvas", ressalvas.length, rotuloPct("Aprovadas com ressalvas", ressalvas.length));
     setStat("pc-desaprovadas", desaprovadas.length, rotuloPct("Desaprovadas", desaprovadas.length));
