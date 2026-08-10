@@ -586,7 +586,33 @@
     el.classList.toggle("is-error", !!isError);
   }
 
-  function baixarModelo() {
+  // Lê um atributo de uma tag XML simples (ex: extrairAtributo('<sheet name="X" r:id="Y"/>', 'r:id') -> "Y").
+  function extrairAtributo(tag, attr) {
+    var m = new RegExp(attr + '="([^"]*)"').exec(tag);
+    return m ? m[1] : null;
+  }
+
+  // O SheetJS free não escreve validação de dados (dropdown) — isso é
+  // recurso pago (SheetJS Pro). Contorno: gera o .xlsx normalmente, abre o
+  // zip com JSZip e injeta manualmente o bloco <dataValidations> no XML da
+  // aba "Importação", apontando pra faixas de célula da aba "Listas de
+  // valores". Resolve o caminho real do XML da aba via workbook.xml +
+  // rels, em vez de assumir "sheet1.xml" (ordem interna do SheetJS não é
+  // um contrato garantido).
+  async function resolverCaminhoAba(zip, nomeAba) {
+    var workbookXml = await zip.file("xl/workbook.xml").async("string");
+    var tagAba = (workbookXml.match(/<sheet [^>]*\/>/g) || [])
+      .filter(function (t) { return extrairAtributo(t, "name") === nomeAba; })[0];
+    if (!tagAba) throw new Error("aba não encontrada no workbook: " + nomeAba);
+    var rId = extrairAtributo(tagAba, "r:id");
+    var relsXml = await zip.file("xl/_rels/workbook.xml.rels").async("string");
+    var tagRel = (relsXml.match(/<Relationship [^>]*\/>/g) || [])
+      .filter(function (t) { return extrairAtributo(t, "Id") === rId; })[0];
+    if (!tagRel) throw new Error("relacionamento não encontrado: " + rId);
+    return "xl/" + extrairAtributo(tagRel, "Target").replace(/^\.?\//, "");
+  }
+
+  async function baixarModelo() {
     var cabecalho = [
       "Nome do Cliente", "Nome do Partido", "Sigla do Partido", "CNPJ do Partido", "Instância Partidária", "UF", "Município", "Cargo Pretendido", "Ano da Eleição",
       "Categoria", "Subcategoria", "Título", "Ano", "Processo (nº)", "Órgão Julgador", "Status", "Resultado",
@@ -612,43 +638,92 @@
     ];
     var sheet = XLSX.utils.aoa_to_sheet(linhas);
 
-    var listas = [
-      ["Coluna", "Valores aceitos (copie exatamente)"],
-      ["Categoria", "Prestação de Contas"],
-      ["Categoria", "AIJE"],
-      ["Categoria", "Representação"],
-      ["Categoria", "Registro de Candidatura"],
-      ["Categoria", "DRAP"],
-      ["Categoria", "Outro"],
-      ["Instância Partidária", "Nacional"],
-      ["Instância Partidária", "Estadual"],
-      ["Instância Partidária", "Municipal"],
-      ["Instância Partidária (cliente que não é diretório)", "Candidato"],
-      ["Instância Partidária (cliente que não é diretório)", "Pessoa Física"],
-      ["Instância Partidária (cliente que não é diretório)", "Pessoa Jurídica"],
-      ["Status", "Em andamento"],
-      ["Status", "Aguardando diligência"],
-      ["Status", "Concluído"],
-      ["Houve recurso? / Trânsito em julgado?", "Sim"],
-      ["Houve recurso? / Trânsito em julgado?", "Não"],
-      ["Resultado (só p/ Prestação de Contas)", "Aprovadas"],
-      ["Resultado (só p/ Prestação de Contas)", "Aprovadas com ressalvas"],
-      ["Resultado (só p/ Prestação de Contas)", "Desaprovadas"],
-      ["Resultado (só p/ Prestação de Contas)", "Não prestadas"],
+    // Listas em formato colunar (uma coluna por campo) — é o formato que
+    // a validação de dados do Excel precisa pra referenciar uma faixa.
+    var colunasListas = [
+      { titulo: "Categoria", valores: ["Prestação de Contas", "AIJE", "Representação", "Registro de Candidatura", "DRAP", "Outro"] },
+      { titulo: "Instância Partidária", valores: ["Nacional", "Estadual", "Municipal", "Candidato", "Pessoa Física", "Pessoa Jurídica"] },
+      { titulo: "UF", valores: BF.UF_LISTA.map(function (u) { return u.sigla; }) },
+      { titulo: "Cargo Pretendido", valores: BF.CARGOS.map(function (c) { return c.label; }) },
+      { titulo: "Subcategoria (sugestão)", valores: ["Anual", "Eleitoral"] },
+      { titulo: "Status", valores: ["Em andamento", "Aguardando diligência", "Concluído"] },
+      { titulo: "Resultado (Prestação de Contas)", valores: ["Aprovadas", "Aprovadas com ressalvas", "Desaprovadas", "Não prestadas"] },
+      { titulo: "Sim/Não", valores: ["Sim", "Não"] },
     ];
+    var maxLinhas = colunasListas.reduce(function (max, c) { return Math.max(max, c.valores.length); }, 0);
+    var listas = [colunasListas.map(function (c) { return c.titulo; })];
+    for (var i = 0; i < maxLinhas; i++) {
+      listas.push(colunasListas.map(function (c) { return c.valores[i] || ""; }));
+    }
     var sheetListas = XLSX.utils.aoa_to_sheet(listas);
 
     var wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, sheet, "Importação");
     XLSX.utils.book_append_sheet(wb, sheetListas, "Listas de valores");
-    XLSX.writeFile(wb, "modelo-importacao-bessoni-fortes.xlsx");
+
+    // Mapeia cada coluna do formulário de importação pra sua lista de
+    // valores correspondente na aba "Listas de valores".
+    var validacoes = [
+      { coluna: "Instância Partidária", lista: "Instância Partidária" },
+      { coluna: "UF", lista: "UF" },
+      { coluna: "Cargo Pretendido", lista: "Cargo Pretendido" },
+      { coluna: "Categoria", lista: "Categoria" },
+      { coluna: "Subcategoria", lista: "Subcategoria (sugestão)" },
+      { coluna: "Status", lista: "Status" },
+      { coluna: "Resultado", lista: "Resultado (Prestação de Contas)" },
+      { coluna: "Houve recurso?", lista: "Sim/Não" },
+      { coluna: "Trânsito em julgado?", lista: "Sim/Não" },
+    ];
+    function refLista(tituloLista) {
+      var idx = colunasListas.map(function (c) { return c.titulo; }).indexOf(tituloLista);
+      var letra = XLSX.utils.encode_col(idx);
+      var qtd = colunasListas[idx].valores.length;
+      return "'Listas de valores'!$" + letra + "$2:$" + letra + "$" + (qtd + 1);
+    }
+    // showErrorMessage="0": mostra a setinha com as opções, mas não
+    // bloqueia se o usuário digitar outro valor — os campos aqui são
+    // sugestões, não um vocabulário fechado (ex: Subcategoria é texto
+    // livre por design; Resultado muda de vocabulário fora de Prestação
+    // de Contas).
+    var blocoValidacoes = "<dataValidations count=\"" + validacoes.length + "\">" +
+      validacoes.map(function (v) {
+        var idx = cabecalho.indexOf(v.coluna);
+        var letra = XLSX.utils.encode_col(idx);
+        var sqref = letra + "2:" + letra + "1000";
+        var formula = refLista(v.lista).replace(/&/g, "&amp;");
+        return "<dataValidation type=\"list\" allowBlank=\"1\" showInputMessage=\"1\" showErrorMessage=\"0\" sqref=\"" + sqref + "\">" +
+          "<formula1>" + formula + "</formula1></dataValidation>";
+      }).join("") +
+      "</dataValidations>";
+
+    var arrayBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    var zip = await JSZip.loadAsync(arrayBuffer);
+    var caminhoAba = await resolverCaminhoAba(zip, "Importação");
+    var xml = await zip.file(caminhoAba).async("string");
+    xml = xml.indexOf("<pageMargins") !== -1
+      ? xml.replace("<pageMargins", blocoValidacoes + "<pageMargins")
+      : xml.replace("</worksheet>", blocoValidacoes + "</worksheet>");
+    zip.file(caminhoAba, xml);
+
+    var blob = await zip.generateAsync({
+      type: "blob",
+      mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "modelo-importacao-bessoni-fortes.xlsx";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
   }
 
   function iniciar() {
-    document.querySelector("[data-baixar-modelo]").addEventListener("click", function () {
+    document.querySelector("[data-baixar-modelo]").addEventListener("click", async function () {
       try {
         setMsg("modelo", "Gerando…", false);
-        baixarModelo();
+        await baixarModelo();
         setMsg("modelo", "Baixado — confira a pasta de Downloads do navegador.", false);
       } catch (err) {
         console.error(err);
