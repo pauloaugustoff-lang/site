@@ -116,8 +116,13 @@
       <div class="dashboard-layout">
         <div>
           <section class="portal-section" id="determinacoes">
-            <h2>Determinações</h2>
-            <p class="portal-section-desc">Números e lista abaixo consideram de todos os clientes e advogados — refletem os filtros que você escolher.</p>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+              <div>
+                <h2>Determinações</h2>
+                <p class="portal-section-desc">Números e lista abaixo consideram de todos os clientes e advogados — refletem os filtros que você escolher.</p>
+              </div>
+              <button class="btn btn-ghost-light" type="button" data-exportar-determinacoes style="flex-shrink: 0;">Exportar relatório (.xlsx)</button>
+            </div>
 
             <div class="portal-stats is-2col" style="margin-bottom: 1.6rem;">
               <div class="portal-stat">
@@ -175,15 +180,13 @@
                 <thead>
                   <tr>
                     <th>Cliente</th>
-                    <th>Categoria</th>
                     <th>Determinação</th>
                     <th>Valor</th>
                     <th>Prazo</th>
                     <th>Status</th>
-                    <th>Responsável</th>
                   </tr>
                 </thead>
-                <tbody data-list="determinacoes"><tr class="empty-row"><td colspan="7">Carregando…</td></tr></tbody>
+                <tbody data-list="determinacoes"><tr class="empty-row"><td colspan="5">Carregando…</td></tr></tbody>
               </table>
             </div>
           </section>
@@ -226,6 +229,7 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../js/supabase-config.js"></script>
 <script src="../js/auth.js"></script>

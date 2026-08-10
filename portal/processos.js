@@ -58,16 +58,32 @@
     }).join("");
   }
 
+  function popularFiltrosProcessos() {
+    var ufs = Array.from(new Set(processosCache.map(function (p) { return p.clientes ? p.clientes.uf : null; }).filter(Boolean))).sort();
+    var resultados = Array.from(new Set(processosCache.map(function (p) { return p.resultado; }).filter(Boolean)))
+      .map(function (r) { return { valor: r, label: LABELS.resultadoContas[r] || r }; })
+      .sort(function (a, b) { return a.label.localeCompare(b.label, "pt-BR"); });
+
+    document.getElementById("filtro-uf").innerHTML = '<option value="">Todas</option>' +
+      ufs.map(function (u) { return '<option value="' + u + '">' + u + "</option>"; }).join("");
+    document.getElementById("filtro-resultado").innerHTML = '<option value="">Todos</option>' +
+      resultados.map(function (r) { return '<option value="' + r.valor + '">' + r.label + "</option>"; }).join("");
+  }
+
   function aplicarFiltros() {
     var termo = document.getElementById("busca-processo").value.trim().toLowerCase();
     var categoria = document.getElementById("filtro-categoria").value;
     var status = document.getElementById("filtro-status").value;
     var responsavel = document.getElementById("filtro-responsavel").value;
+    var resultado = document.getElementById("filtro-resultado").value;
+    var uf = document.getElementById("filtro-uf").value;
 
-    var filtrados = processosCache.filter(function (p) {
+    var semMunicipio = processosCache.filter(function (p) {
       if (categoria && p.categoria !== categoria) return false;
       if (status && p.status !== status) return false;
       if (responsavel && p.responsavel_id !== responsavel) return false;
+      if (resultado && p.resultado !== resultado) return false;
+      if (uf && (!p.clientes || p.clientes.uf !== uf)) return false;
       if (termo) {
         var alvo = [
           p.clientes ? p.clientes.nome : "",
@@ -78,6 +94,24 @@
       }
       return true;
     });
+
+    // Cidade só aparece quando há município no recorte atual (mesma lógica
+    // usada nos filtros de prestação de contas do painel do escritório).
+    var municipios = Array.from(new Set(semMunicipio.map(function (p) { return p.clientes ? p.clientes.municipio : null; }).filter(Boolean)))
+      .sort(function (a, b) { return a.localeCompare(b, "pt-BR"); });
+    var campoMunicipio = document.querySelector("[data-campo-municipio-processos]");
+    var selectMunicipio = document.getElementById("filtro-municipio");
+    campoMunicipio.hidden = municipios.length === 0;
+    var municipioAtual = selectMunicipio.value;
+    selectMunicipio.innerHTML = '<option value="">Todas</option>' +
+      municipios.map(function (m) { return '<option value="' + m + '">' + m + "</option>"; }).join("");
+    var municipio = municipios.indexOf(municipioAtual) !== -1 ? municipioAtual : "";
+    selectMunicipio.value = municipio;
+
+    var filtrados = municipio
+      ? semMunicipio.filter(function (p) { return p.clientes && p.clientes.municipio === municipio; })
+      : semMunicipio;
+
     processosFiltrados = filtrados;
     renderTabela(filtrados);
   }
@@ -123,8 +157,9 @@
   async function carregarAdvogados() {
     var { data, error } = await bfSupabase.from("perfis").select("id, nome").eq("role", "escritorio").order("nome");
     if (error) { console.error(error); return; }
+    var advogados = (data || []).sort(function (a, b) { return a.nome.localeCompare(b.nome, "pt-BR"); });
     document.getElementById("filtro-responsavel").innerHTML =
-      '<option value="">Todos</option>' + (data || []).map(function (a) { return '<option value="' + a.id + '">' + a.nome + "</option>"; }).join("");
+      '<option value="">Todos</option>' + advogados.map(function (a) { return '<option value="' + a.id + '">' + a.nome + "</option>"; }).join("");
   }
 
   async function carregarProcessos() {
@@ -140,6 +175,7 @@
       return;
     }
     processosCache = data || [];
+    popularFiltrosProcessos();
     aplicarFiltros();
   }
 
@@ -159,7 +195,7 @@
     });
 
     document.getElementById("busca-processo").addEventListener("input", aplicarFiltros);
-    ["filtro-categoria", "filtro-status", "filtro-responsavel"].forEach(function (id) {
+    ["filtro-categoria", "filtro-status", "filtro-responsavel", "filtro-resultado", "filtro-uf", "filtro-municipio"].forEach(function (id) {
       document.getElementById(id).addEventListener("change", aplicarFiltros);
     });
     document.querySelector("[data-exportar-relatorio]").addEventListener("click", exportarRelatorio);

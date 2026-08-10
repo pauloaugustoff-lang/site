@@ -61,6 +61,8 @@
       var cliente = pr.clientes || {};
       return {
         id: d.id,
+        processoId: pr.id,
+        numeroProcesso: pr.numero_processo,
         clienteNome: cliente.nome || "—",
         categoria: pr.categoria || null,
         ano: pr.ano || null,
@@ -75,6 +77,10 @@
         responsavelNome: pr.perfis ? pr.perfis.nome : null,
       };
     });
+  }
+
+  function linkDeterminacaoProcesso(l) {
+    return l.numeroProcesso ? "processo.html?numero=" + encodeURIComponent(l.numeroProcesso) : "processo.html?id=" + l.processoId;
   }
 
   function popularFiltros() {
@@ -115,21 +121,22 @@
   function renderDeterminacoesTabela(lista) {
     var tbody = document.querySelector('[data-list="determinacoes"]');
     if (!lista.length) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="7">Nenhuma determinação encontrada para esse filtro.</td></tr>';
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="5">Nenhuma determinação encontrada para esse filtro.</td></tr>';
       return;
     }
     tbody.innerHTML = lista.map(function (l) {
+      var href = linkDeterminacaoProcesso(l);
       return "<tr>" +
-        "<td>" + l.clienteNome + "</td>" +
-        "<td>" + (LABELS.categoria[l.categoria] || "—") + "</td>" +
-        "<td>" + (LABELS.tipoDeterminacao[l.tipo] || l.tipo) + " — " + l.descricao + "</td>" +
+        '<td><a class="portal-inline-link" href="' + href + '">' + l.clienteNome + "</a></td>" +
+        '<td><a class="portal-inline-link" href="' + href + '">' + (LABELS.tipoDeterminacao[l.tipo] || l.tipo) + " — " + l.descricao + "</a></td>" +
         "<td>" + fmtMoeda(l.valor) + "</td>" +
         "<td>" + fmtData(l.prazo) + "</td>" +
         "<td>" + statusBadge(l) + "</td>" +
-        "<td>" + (l.responsavelNome || "—") + "</td>" +
       "</tr>";
     }).join("");
   }
+
+  var determinacoesFiltradas = [];
 
   function aplicarFiltros() {
     var cliente = document.getElementById("filtro-cliente").value;
@@ -145,20 +152,45 @@
       return true;
     });
 
+    determinacoesFiltradas = filtradas;
     renderStats(filtradas);
     renderDeterminacoesTabela(filtradas);
+  }
+
+  function exportarRelatorioDeterminacoes() {
+    var LABELS_STATUS_EXPORT = { pendente: "Pendente", vencida: "Vencida", cumprida: "Cumprida" };
+    var cabecalho = ["Cliente", "Categoria", "Tipo", "Descrição", "Valor", "Exercício", "Prazo", "Status", "Responsável"];
+    var linhas = determinacoesFiltradas.map(function (l) {
+      return [
+        l.clienteNome,
+        LABELS.categoria[l.categoria] || l.categoria || "",
+        LABELS.tipoDeterminacao[l.tipo] || l.tipo,
+        l.descricao || "",
+        l.valor === null || l.valor === undefined ? "" : Number(l.valor),
+        l.ano || "",
+        fmtData(l.prazo),
+        LABELS_STATUS_EXPORT[statusKey(l)] || l.status,
+        l.responsavelNome || "",
+      ];
+    });
+    var sheet = XLSX.utils.aoa_to_sheet([cabecalho].concat(linhas));
+    sheet["!cols"] = cabecalho.map(function () { return { wch: 20 }; });
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, sheet, "Determinações");
+    var hoje = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, "relatorio-determinacoes-" + hoje + ".xlsx");
   }
 
   async function carregarDeterminacoes() {
     var { data, error } = await bfSupabase
       .from("determinacoes")
-      .select("*, processos(categoria, ano, responsavel_id, clientes(nome), perfis(nome))")
+      .select("*, processos(id, categoria, ano, numero_processo, responsavel_id, clientes(nome), perfis(nome))")
       .order("prazo", { ascending: true, nullsFirst: false });
 
     if (error) {
       console.error(error);
       document.querySelector('[data-list="determinacoes"]').innerHTML =
-        '<tr class="empty-row"><td colspan="6">Não foi possível carregar os dados agora.</td></tr>';
+        '<tr class="empty-row"><td colspan="5">Não foi possível carregar os dados agora.</td></tr>';
       return;
     }
 
@@ -372,6 +404,7 @@
     ["filtro-cliente", "filtro-exercicio", "filtro-status", "filtro-responsavel"].forEach(function (id) {
       document.getElementById(id).addEventListener("change", aplicarFiltros);
     });
+    document.querySelector("[data-exportar-determinacoes]").addEventListener("click", exportarRelatorioDeterminacoes);
   }
 
   async function carregarMeusNumeros(meuId) {
