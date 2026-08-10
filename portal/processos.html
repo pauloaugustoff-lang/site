@@ -37,9 +37,12 @@
   <div class="portal-content">
     <main class="portal-main">
 
-      <div class="portal-head">
-        <h1>Processos</h1>
-        <p>Todos os processos cadastrados, de qualquer cliente.</p>
+      <div class="portal-head" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1.5rem; flex-wrap: wrap;">
+        <div>
+          <h1>Processos</h1>
+          <p>Todos os processos cadastrados, de qualquer cliente.</p>
+        </div>
+        <button class="btn btn-ghost-light" type="button" data-exportar-relatorio style="flex-shrink: 0;">Exportar relatório (.xlsx)</button>
       </div>
 
       <section class="portal-section">
@@ -74,10 +77,6 @@
             <label for="filtro-responsavel">Responsável</label>
             <select id="filtro-responsavel"><option value="">Todos</option></select>
           </div>
-        </div>
-
-        <div style="display: flex; justify-content: flex-end; margin-bottom: 1.6rem;">
-          <button class="btn btn-ghost-light" type="button" data-exportar-relatorio>Exportar relatório (.xlsx)</button>
         </div>
 
         <div class="table-wrap">

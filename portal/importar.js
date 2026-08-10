@@ -700,8 +700,26 @@
     var zip = await JSZip.loadAsync(arrayBuffer);
     var caminhoAba = await resolverCaminhoAba(zip, "Importação");
     var xml = await zip.file(caminhoAba).async("string");
-    xml = xml.indexOf("<pageMargins") !== -1
-      ? xml.replace("<pageMargins", blocoValidacoes + "<pageMargins")
+    // O schema do OOXML exige uma ordem fixa de elementos dentro de
+    // <worksheet> — dataValidations precisa vir ANTES de hyperlinks,
+    // printOptions, pageMargins, pageSetup, ... ignoredErrors, etc (nessa
+    // ordem). Inserir no lugar errado gera um .xlsx que o Excel recusa
+    // como corrompido, mesmo sendo XML bem formado (SheetJS/DOMParser não
+    // acusam, só a validação de schema do Excel). Por isso: acha o
+    // primeiro desses elementos que já existe no XML gerado (na ordem em
+    // que o schema permite) e insere logo antes dele.
+    var elementosDepoisDeValidacoes = [
+      "<hyperlinks", "<printOptions", "<pageMargins", "<pageSetup", "<headerFooter",
+      "<rowBreaks", "<colBreaks", "<customProperties", "<cellWatches", "<ignoredErrors",
+      "<smartTags", "<drawing", "<legacyDrawing", "<picture", "<oleObjects", "<controls",
+      "<webPublishItems", "<tableParts", "<extLst",
+    ];
+    var posicaoInsercao = elementosDepoisDeValidacoes
+      .map(function (tag) { return xml.indexOf(tag); })
+      .filter(function (pos) { return pos !== -1; })
+      .reduce(function (min, pos) { return min === null ? pos : Math.min(min, pos); }, null);
+    xml = posicaoInsercao !== null
+      ? xml.slice(0, posicaoInsercao) + blocoValidacoes + xml.slice(posicaoInsercao)
       : xml.replace("</worksheet>", blocoValidacoes + "</worksheet>");
     zip.file(caminhoAba, xml);
 
