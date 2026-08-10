@@ -27,8 +27,17 @@
   function linkProcesso(p) {
     return p.numero_processo ? "processo.html?numero=" + encodeURIComponent(p.numero_processo) : "processo.html?id=" + p.id;
   }
+  function fmtData(v) {
+    if (!v) return "";
+    return new Date(v + "T00:00:00").toLocaleDateString("pt-BR");
+  }
+  function fmtBool(v) {
+    if (v === null || v === undefined) return "";
+    return v ? "Sim" : "Não";
+  }
 
   var processosCache = [];
+  var processosFiltrados = [];
 
   function renderTabela(lista) {
     var tbody = document.querySelector('[data-list="processos"]');
@@ -69,7 +78,46 @@
       }
       return true;
     });
+    processosFiltrados = filtrados;
     renderTabela(filtrados);
+  }
+
+  function exportarRelatorio() {
+    var cabecalho = [
+      "Cliente", "Título", "Número do processo", "Categoria", "Subcategoria", "Ano",
+      "UF", "Município", "Órgão julgador", "Foro", "Status", "Resultado",
+      "Data de distribuição", "Houve recurso", "Trânsito em julgado", "Data do trânsito",
+      "Advogado responsável",
+    ];
+    var linhas = processosFiltrados.map(function (p) {
+      var cliente = p.clientes || {};
+      return [
+        cliente.nome || "",
+        p.titulo || "",
+        p.numero_processo || "",
+        LABELS.categoria[p.categoria] || p.categoria || "",
+        p.subcategoria || "",
+        p.ano || "",
+        cliente.uf || "",
+        cliente.municipio || "",
+        p.orgao_julgador || "",
+        p.foro || "",
+        LABELS.status[p.status] || p.status || "",
+        resultadoLabel(p.categoria, p.resultado) === "—" ? "" : resultadoLabel(p.categoria, p.resultado),
+        fmtData(p.data_protocolo),
+        fmtBool(p.houve_recurso),
+        fmtBool(p.transito_julgado),
+        fmtData(p.data_transito),
+        p.perfis ? p.perfis.nome : "",
+      ];
+    });
+
+    var sheet = XLSX.utils.aoa_to_sheet([cabecalho].concat(linhas));
+    sheet["!cols"] = cabecalho.map(function () { return { wch: 20 }; });
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, sheet, "Processos");
+    var hoje = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, "relatorio-processos-" + hoje + ".xlsx");
   }
 
   async function carregarAdvogados() {
@@ -82,7 +130,7 @@
   async function carregarProcessos() {
     var { data, error } = await bfSupabase
       .from("processos")
-      .select("*, clientes(nome), perfis(nome)")
+      .select("*, clientes(nome, uf, municipio), perfis(nome)")
       .order("created_at", { ascending: false });
 
     var tbody = document.querySelector('[data-list="processos"]');
@@ -114,6 +162,7 @@
     ["filtro-categoria", "filtro-status", "filtro-responsavel"].forEach(function (id) {
       document.getElementById(id).addEventListener("change", aplicarFiltros);
     });
+    document.querySelector("[data-exportar-relatorio]").addEventListener("click", exportarRelatorio);
 
     await carregarAdvogados();
     await carregarProcessos();
