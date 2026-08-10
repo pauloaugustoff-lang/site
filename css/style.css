@@ -1006,6 +1006,8 @@ section{ padding: clamp(4.5rem, 9vw, 8rem) 0; }
   margin-bottom: 2.5rem;
 }
 .portal-stats.is-2col{ grid-template-columns: repeat(2, 1fr); }
+.portal-stats.is-3col{ grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 640px){ .portal-stats.is-3col{ grid-template-columns: repeat(2, 1fr); } }
 .portal-stat{ background: var(--white); padding: 1.4rem 1.5rem; min-width: 0; }
 .portal-stat .num{
   display: block;
