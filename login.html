@@ -6,7 +6,7 @@
 <title>Portal do Cliente — Bessoni &amp; Fortes</title>
 <meta name="description" content="Acesse o Portal do Cliente Bessoni & Fortes para acompanhar processos, prazos e comunicações do escritório.">
 <link rel="icon" type="image/png" href="assets/img/bf-mark-navy.png">
-<link rel="stylesheet" href="css/style.css?v=19">
+<link rel="stylesheet" href="css/style.css?v=20">
 </head>
 <body>
 
@@ -59,32 +59,37 @@
           </div>
         </div>
 
-        <div class="field">
-          <label for="senha">Senha</label>
-          <div class="field-control">
-            <input type="password" id="senha" name="senha" autocomplete="current-password" placeholder="Digite sua senha" required>
-            <button class="field-toggle" type="button" data-password-toggle="senha" aria-label="Mostrar senha">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-            </button>
+        <div data-campo-senha>
+          <div class="field">
+            <label for="senha">Senha</label>
+            <div class="field-control">
+              <input type="password" id="senha" name="senha" autocomplete="current-password" placeholder="Digite sua senha">
+              <button class="field-toggle" type="button" data-password-toggle="senha" aria-label="Mostrar senha">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <label class="checkbox">
+              <input type="checkbox" name="lembrar">
+              Manter conectado
+            </label>
+            <a href="#" data-abrir-recuperar>Esqueci minha senha</a>
           </div>
         </div>
 
-        <div class="field-row">
-          <label class="checkbox">
-            <input type="checkbox" name="lembrar">
-            Manter conectado
-          </label>
-          <a href="#">Esqueci minha senha</a>
-        </div>
+        <p class="form-note" data-msg-recuperar hidden style="margin: 0 0 1.2rem;">Informe seu e-mail acima — vamos te mandar um link pra redefinir a senha.</p>
 
-        <button class="btn btn-primary btn-block" type="submit">
+        <button class="btn btn-primary btn-block" type="submit" data-btn-acao>
           Entrar
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
         </button>
+        <button class="btn btn-ghost-light btn-block" type="button" data-voltar-login hidden style="margin-top: .8rem;">Voltar para login</button>
 
         <div class="form-feedback" data-form-feedback>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
-          <span>O Portal do Cliente está em implantação. Em breve você poderá acompanhar seus processos por aqui — nossa equipe entrará em contato com as instruções de acesso.</span>
+          <span></span>
         </div>
       </form>
 
